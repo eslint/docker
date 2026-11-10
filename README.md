@@ -21,6 +21,62 @@ npm install --save-dev eslint @eslint/docker
 
 Requires Node.js `^20.19.0 || ^22.13.0 || >=24`. Tested with ESLint v10.
 
+## Usage
+
+Add the plugin to your `eslint.config.js`:
+
+```js
+import { defineConfig } from "eslint/config";
+import docker from "@eslint/docker";
+
+export default defineConfig([
+	{
+		// use the recommended rules for Dockerfiles and Containerfiles
+		files: [
+			"**/Dockerfile",
+			"**/Dockerfile.*",
+			"**/*.dockerfile",
+			"**/Containerfile",
+		],
+		plugins: { docker },
+		extends: ["docker/recommended"],
+	},
+]);
+```
+
+Or configure it manually:
+
+```js
+import { defineConfig } from "eslint/config";
+import docker from "@eslint/docker";
+
+export default defineConfig([
+	{
+		files: ["**/Dockerfile"],
+		plugins: { docker },
+		language: "docker/dockerfile",
+	},
+]);
+```
+
+## Configuration comments
+
+ESLint configuration comments work inside Dockerfiles. Note that Dockerfile
+comments must start at the beginning of a line (a trailing `#` is part of
+the instruction's arguments), so use `eslint-disable-next-line` rather than
+`eslint-disable-line`:
+
+```dockerfile
+# eslint-disable-next-line docker/no-maintainer
+MAINTAINER jane@example.com
+
+# eslint-disable docker/require-image-tag
+FROM node
+# eslint-enable docker/require-image-tag
+
+# eslint docker/no-sudo: "warn"
+```
+
 ## Syntax tree
 
 The tree format is documented in [docs/syntax-tree.md](docs/syntax-tree.md).
