@@ -13,12 +13,14 @@ import consistentInstructionCasing from "./rules/consistent-instruction-casing.j
 import noAptGetUpgrade from "./rules/no-apt-get-upgrade.js";
 import noCdInRun from "./rules/no-cd-in-run.js";
 import noDuplicateInstructions from "./rules/no-duplicate-instructions.js";
+import noMaintainer from "./rules/no-maintainer.js";
 
 const rules = {
 	"consistent-instruction-casing": consistentInstructionCasing,
 	"no-apt-get-upgrade": noAptGetUpgrade,
 	"no-cd-in-run": noCdInRun,
 	"no-duplicate-instructions": noDuplicateInstructions,
+	"no-maintainer": noMaintainer,
 };
 
 const plugin = {
@@ -47,6 +49,7 @@ const plugin = {
 				"docker/no-apt-get-upgrade": "error",
 				"docker/no-cd-in-run": "error",
 				"docker/no-duplicate-instructions": "error",
+				"docker/no-maintainer": "error",
 			} as const,
 		},
 	},
