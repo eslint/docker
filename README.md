@@ -59,6 +59,14 @@ export default defineConfig([
 ]);
 ```
 
+## Rules
+
+Each rule mirrors a well-known hadolint check or Docker best practice.
+
+| Rule                                                                             | hadolint | Description                              | Fixable | Recommended |
+| -------------------------------------------------------------------------------- | -------- | ---------------------------------------- | ------- | ----------- |
+| [`consistent-instruction-casing`](./docs/rules/consistent-instruction-casing.md) | —        | Instruction keywords should be uppercase | ✅      | error       |
+
 ## Configuration comments
 
 ESLint configuration comments work inside Dockerfiles. Note that Dockerfile
