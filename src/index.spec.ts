@@ -32,6 +32,7 @@ describe("plugin", () => {
 		expect(ruleIds.sort()).toEqual([
 			"consistent-instruction-casing",
 			"no-apt-get-upgrade",
+			"no-cd-in-run",
 		]);
 	});
 
