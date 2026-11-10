@@ -39,6 +39,7 @@ describe("plugin", () => {
 			"prefer-copy-over-add",
 			"prefer-exec-form",
 			"require-absolute-workdir",
+			"require-image-tag",
 		]);
 	});
 

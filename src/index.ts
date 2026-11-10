@@ -18,6 +18,7 @@ import noSudo from "./rules/no-sudo.js";
 import preferCopyOverAdd from "./rules/prefer-copy-over-add.js";
 import preferExecForm from "./rules/prefer-exec-form.js";
 import requireAbsoluteWorkdir from "./rules/require-absolute-workdir.js";
+import requireImageTag from "./rules/require-image-tag.js";
 
 const rules = {
 	"consistent-instruction-casing": consistentInstructionCasing,
@@ -29,6 +30,7 @@ const rules = {
 	"prefer-copy-over-add": preferCopyOverAdd,
 	"prefer-exec-form": preferExecForm,
 	"require-absolute-workdir": requireAbsoluteWorkdir,
+	"require-image-tag": requireImageTag,
 };
 
 const plugin = {
@@ -62,6 +64,7 @@ const plugin = {
 				"docker/prefer-copy-over-add": "error",
 				"docker/prefer-exec-form": "warn",
 				"docker/require-absolute-workdir": "error",
+				"docker/require-image-tag": "error",
 			} as const,
 		},
 	},
