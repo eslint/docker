@@ -36,6 +36,7 @@ describe("plugin", () => {
 			"no-duplicate-instructions",
 			"no-maintainer",
 			"no-sudo",
+			"prefer-copy-over-add",
 		]);
 	});
 
