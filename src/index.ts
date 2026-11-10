@@ -11,10 +11,12 @@
 import { DockerLanguage } from "./languages/docker-language.js";
 import consistentInstructionCasing from "./rules/consistent-instruction-casing.js";
 import noAptGetUpgrade from "./rules/no-apt-get-upgrade.js";
+import noCdInRun from "./rules/no-cd-in-run.js";
 
 const rules = {
 	"consistent-instruction-casing": consistentInstructionCasing,
 	"no-apt-get-upgrade": noAptGetUpgrade,
+	"no-cd-in-run": noCdInRun,
 };
 
 const plugin = {
@@ -41,6 +43,7 @@ const plugin = {
 			rules: {
 				"docker/consistent-instruction-casing": "error",
 				"docker/no-apt-get-upgrade": "error",
+				"docker/no-cd-in-run": "error",
 			} as const,
 		},
 	},
