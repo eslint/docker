@@ -33,6 +33,7 @@ describe("plugin", () => {
 			"consistent-instruction-casing",
 			"no-apt-get-upgrade",
 			"no-cd-in-run",
+			"no-duplicate-instructions",
 		]);
 	});
 
