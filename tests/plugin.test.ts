@@ -147,7 +147,12 @@ describe("recommended configuration", () => {
 				filename,
 			);
 
-			expect(messages.length, filename).toBeGreaterThan(0);
+			// Unmatched files also produce a message ("No matching
+			// configuration found"), so check for a rule diagnostic.
+			expect(
+				messages.map(message => message.ruleId),
+				filename,
+			).toContain("docker/require-image-tag");
 		}
 	});
 
