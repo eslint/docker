@@ -67,5 +67,11 @@ ruleTester.run("require-image-tag", rule as never, {
 			code: "FROM node:20 AS build\nFROM ubuntu:latest",
 			errors: [{ messageId: "latestTag", line: 2 }],
 		},
+		{
+			// A tagged reference is an external image, even when an
+			// earlier stage has the same name.
+			code: "FROM node:20 AS node\nFROM node:latest",
+			errors: [{ messageId: "latestTag", line: 2 }],
+		},
 	],
 });
