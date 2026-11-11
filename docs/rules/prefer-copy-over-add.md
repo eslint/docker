@@ -23,9 +23,10 @@ when ADD's extra behavior may be intended:
 - a source is a remote URL (`https://...`) or a Git reference (`git@...`),
 - a source looks like an archive (`.tar`, `.tar.gz`, `.tgz`, `.tar.bz2`,
   `.tar.xz`, `.tar.zst`, and similar),
-- the instruction uses an ADD-only flag (`--checksum` or
-  `--keep-git-dir`), or
-- a source contains a variable reference, which cannot be checked.
+- the instruction uses an ADD-only flag (`--checksum`, `--keep-git-dir`,
+  or `--unpack`), or
+- a source contains a variable reference, a wildcard, quotes, or escapes,
+  which cannot be checked.
 
 Examples of **incorrect** code for this rule:
 

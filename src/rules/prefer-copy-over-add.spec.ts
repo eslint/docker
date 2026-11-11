@@ -29,8 +29,19 @@ ruleTester.run("prefer-copy-over-add", rule as never, {
 		// ADD-only flags.
 		"ADD --checksum=sha256:abc123 files/ /app/",
 		"ADD --keep-git-dir=true repo /src/",
+		"ADD --unpack=false file.txt /app/",
+		// Trailing slashes are ignored when resolving sources.
+		"ADD rootfs.tar.gz/ /",
 		// Variable sources cannot be checked.
 		"ADD $ARTIFACT /app/",
+		// Wildcards may match archives.
+		"ADD *.tar.* /out/",
+		"ADD layer?.bin /out/",
+		// Quoted and escaped sources are not resolved.
+		'ADD "rootfs.tar.gz" /',
+		"ADD 'https://example.com/file' /tmp/",
+		"ADD rootfs\\.tar.gz /",
+		'ADD ["rootfs\\u002etar.gz", "/"]',
 		"ADD",
 	],
 	invalid: [

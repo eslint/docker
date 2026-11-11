@@ -18,6 +18,15 @@ const URL_SOURCE = /^[a-z][a-z0-9+.-]*:\/\//iu;
 const GIT_SOURCE = /^git@/iu;
 const ARCHIVE_SOURCE = /\.(?:tar|tgz|txz|tbz2?|tar\.(?:gz|bz2|xz|zst))$/iu;
 
+/**
+ * Sources whose meaning depends on expansion or quoting: variables,
+ * wildcards, and quotes.
+ */
+const UNRESOLVED_SOURCE = /[$*?[\]"']/u;
+
+/** Flags that COPY does not support. */
+const ADD_ONLY_FLAGS = new Set(["checksum", "keep-git-dir", "unpack"]);
+
 //------------------------------------------------------------------------------
 // Rule Definition
 //------------------------------------------------------------------------------
@@ -39,6 +48,8 @@ const rule: DockerRuleDefinition<{ MessageIds: "useCopy" }> = {
 	},
 
 	create(context) {
+		const { sourceCode } = context;
+
 		return {
 			AddInstruction(node) {
 				if (node.sources.length === 0) {
@@ -46,26 +57,28 @@ const rule: DockerRuleDefinition<{ MessageIds: "useCopy" }> = {
 				}
 
 				// These flags only exist on ADD.
-				if (
-					node.flags.some(
-						flag =>
-							flag.name === "checksum" ||
-							flag.name === "keep-git-dir",
-					)
-				) {
+				if (node.flags.some(flag => ADD_ONLY_FLAGS.has(flag.name))) {
 					return;
 				}
 
-				// ADD is legitimately needed for URLs and archives, and
-				// variable sources cannot be checked.
+				// ADD is legitimately needed for URLs and archives. Sources
+				// that cannot be classified from their literal text
+				// (variables, wildcards, quoting, and escapes) are skipped.
 				if (
-					node.sources.some(
-						source =>
-							URL_SOURCE.test(source.value) ||
-							GIT_SOURCE.test(source.value) ||
-							ARCHIVE_SOURCE.test(source.value) ||
-							source.value.includes("$"),
-					)
+					node.sources.some(source => {
+						const { value } = source;
+						const path = value.replace(/\/+$/u, "");
+
+						return (
+							URL_SOURCE.test(value) ||
+							GIT_SOURCE.test(value) ||
+							ARCHIVE_SOURCE.test(path) ||
+							UNRESOLVED_SOURCE.test(value) ||
+							sourceCode.text
+								.slice(source.start, source.end)
+								.includes("\\")
+						);
+					})
 				) {
 					return;
 				}
