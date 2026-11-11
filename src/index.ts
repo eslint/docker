@@ -22,3 +22,6 @@ const plugin = {
 //------------------------------------------------------------------------------
 
 export default plugin;
+export { parseDocker } from "./parser/parse.js";
+export { INSTRUCTION_TYPES } from "./types.js";
+export type * from "./types.js";
