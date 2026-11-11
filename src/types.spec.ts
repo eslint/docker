@@ -40,7 +40,7 @@ describe("types", () => {
 			start: 0,
 			end: 1,
 			arguments: [],
-		} as const;
+		} satisfies ShellFormNode;
 
 		expectTypeOf(shellForm).toMatchTypeOf<ShellFormNode>();
 	});
