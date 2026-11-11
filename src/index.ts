@@ -15,6 +15,7 @@ import noCdInRun from "./rules/no-cd-in-run.js";
 import noDuplicateInstructions from "./rules/no-duplicate-instructions.js";
 import noMaintainer from "./rules/no-maintainer.js";
 import noSudo from "./rules/no-sudo.js";
+import preferCopyOverAdd from "./rules/prefer-copy-over-add.js";
 
 const rules = {
 	"consistent-instruction-casing": consistentInstructionCasing,
@@ -23,6 +24,7 @@ const rules = {
 	"no-duplicate-instructions": noDuplicateInstructions,
 	"no-maintainer": noMaintainer,
 	"no-sudo": noSudo,
+	"prefer-copy-over-add": preferCopyOverAdd,
 };
 
 const plugin = {
@@ -53,6 +55,7 @@ const plugin = {
 				"docker/no-duplicate-instructions": "error",
 				"docker/no-maintainer": "error",
 				"docker/no-sudo": "error",
+				"docker/prefer-copy-over-add": "error",
 			} as const,
 		},
 	},
