@@ -9,8 +9,10 @@ meaning depends on everything that came before it — including WORKDIR
 instructions inherited from the base image:
 
 ```dockerfile
-FROM some-base       # whose WORKDIR might be anything
-WORKDIR app          # …/app, wherever that is
+# a base image whose WORKDIR might be anything
+FROM some-base
+# …/app, wherever that is
+WORKDIR app
 ```
 
 If the base image changes its working directory, the build breaks or,
