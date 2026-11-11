@@ -67,5 +67,23 @@ ruleTester.run("no-cd-in-run", rule as never, {
 			output: null,
 			errors: [{ messageId: "useWorkdir" }],
 		},
+		// Only plain literal paths are autofixed.
+		...[
+			"RUN cd /app&&make",
+			"RUN cd /app|tee",
+			"RUN (cd /app)",
+			"RUN cd ~",
+			"RUN cd ~/app",
+			"RUN cd $HOME",
+			"RUN cd ${APP_DIR}",
+			"RUN cd $(pwd)/app",
+			"RUN cd `pwd`",
+			'RUN cd "/my app"',
+			"RUN cd /app/*",
+		].map(code => ({
+			code,
+			output: null,
+			errors: [{ messageId: "useWorkdir" }],
+		})),
 	],
 });
