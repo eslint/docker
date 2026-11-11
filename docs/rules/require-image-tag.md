@@ -4,7 +4,7 @@ Require base images to be pinned to an explicit tag or digest.
 
 ## Background
 
-A FROM instruction without a tag implicitly uses `latest`, and `latest`
+A `FROM` instruction without a tag implicitly uses `latest`, and `latest`
 itself is a moving target: the image it points to changes whenever the
 publisher pushes a new version. Builds that worked yesterday can fail
 today, and two machines building the same Dockerfile can produce
@@ -15,7 +15,7 @@ pinning to a digest (`node@sha256:...`) makes them fully reproducible.
 
 ## Rule Details
 
-This rule warns when a FROM image has no tag or digest (`missingTag`) or
+This rule warns when a `FROM` image has no tag or digest (`missingTag`) or
 uses the `latest` tag (`latestTag`). It does not warn for:
 
 - references to earlier build stages (`FROM base`),
