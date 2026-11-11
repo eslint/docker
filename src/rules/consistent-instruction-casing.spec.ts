@@ -26,6 +26,11 @@ ruleTester.run("consistent-instruction-casing", rule as never, {
 	],
 	invalid: [
 		{
+			code: "straße value",
+			output: "STRASSE value",
+			errors: [{ messageId: "expectedUppercase" }],
+		},
+		{
 			code: "from node:20",
 			output: "FROM node:20",
 			errors: [
