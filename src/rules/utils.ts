@@ -31,20 +31,26 @@ export interface ShellCommand {
 
 	/**
 	 * The token values with a leading `(` removed from the first word and
-	 * a trailing `;` removed from the last word.
+	 * a trailing separator `;` (unquoted and unescaped) removed from the
+	 * last word.
 	 */
 	words: string[];
 }
 
 /**
  * Splits shell-form arguments into simple commands on `&&`, `||`, `;`,
- * `|`, and `&` operator tokens, as well as on tokens ending with `;`.
+ * `|`, and `&` operator tokens, as well as on tokens ending with an
+ * unquoted, unescaped `;`. Quoting and escaping are read from the source
+ * text because argument values already have some escapes resolved.
  */
-export function splitShellCommands(shellForm: ShellFormNode): ShellCommand[] {
+export function splitShellCommands(
+	shellForm: ShellFormNode,
+	sourceText: string,
+): ShellCommand[] {
 	const commands: ShellCommand[] = [];
 	let current: ArgumentNode[] = [];
 
-	const push = (): void => {
+	const push = (endsWithSeparator = false): void => {
 		if (current.length > 0) {
 			commands.push({
 				tokens: current,
@@ -55,8 +61,8 @@ export function splitShellCommands(shellForm: ShellFormNode): ShellCommand[] {
 						word = word.replace(/^\(+/u, "");
 					}
 
-					if (index === current.length - 1) {
-						word = word.replace(/;+$/u, "");
+					if (endsWithSeparator && index === current.length - 1) {
+						word = word.replace(/;$/u, "");
 					}
 
 					return word;
@@ -68,13 +74,23 @@ export function splitShellCommands(shellForm: ShellFormNode): ShellCommand[] {
 
 	let quote: string | null = null;
 
-	/** Updates the open-quote state after consuming a token. */
-	const consumeQuotes = (value: string): void => {
+	/**
+	 * Updates the open-quote state after consuming a token. Returns whether
+	 * the token ends with a semicolon that is neither quoted nor escaped,
+	 * which separates commands.
+	 */
+	const consumeQuotes = (value: string): boolean => {
+		let endsWithSeparator = false;
+
 		for (let i = 0; i < value.length; i++) {
 			const character = value[i] as string;
 
+			endsWithSeparator = false;
+
 			if (character === "\\" && quote !== "'") {
 				i++;
+			} else if (character === ";" && quote === null) {
+				endsWithSeparator = true;
 			} else if (
 				quote === null &&
 				(character === '"' || character === "'")
@@ -84,19 +100,25 @@ export function splitShellCommands(shellForm: ShellFormNode): ShellCommand[] {
 				quote = null;
 			}
 		}
+
+		return endsWithSeparator;
 	};
 
 	for (const argument of shellForm.arguments) {
-		if (quote === null && COMMAND_SEPARATORS.has(argument.value)) {
+		if (
+			quote === null &&
+			COMMAND_SEPARATORS.has(
+				sourceText.slice(argument.start, argument.end),
+			)
+		) {
 			push();
 			continue;
 		}
 
 		current.push(argument);
-		consumeQuotes(argument.value);
 
-		if (quote === null && argument.value.endsWith(";")) {
-			push();
+		if (consumeQuotes(sourceText.slice(argument.start, argument.end))) {
+			push(true);
 		}
 	}
 
