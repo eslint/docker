@@ -41,8 +41,10 @@ const rule: DockerRuleDefinition<{ MessageIds: "useLabel" }> = {
 						? sourceCode.text.slice(first.start, last.end)
 						: "";
 
-				// Only fix simple single-line values without quoting concerns.
-				const canFix = argsText !== "" && !/[\n\r"\\]/u.test(argsText);
+				// Only fix simple single-line values without quoting
+				// concerns. MAINTAINER keeps `$` literally, but LABEL
+				// expands variables even inside double quotes.
+				const canFix = argsText !== "" && !/[\n\r"\\$]/u.test(argsText);
 
 				context.report({
 					node,
