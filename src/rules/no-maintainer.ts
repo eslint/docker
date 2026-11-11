@@ -17,7 +17,7 @@ const rule: DockerRuleDefinition<{ MessageIds: "useLabel" }> = {
 	meta: {
 		type: "problem",
 		docs: {
-			description: "Disallow the deprecated MAINTAINER instruction",
+			description: "Disallow the deprecated `MAINTAINER` instruction",
 			recommended: true,
 			url: "https://github.com/eslint/docker/blob/main/docs/rules/no-maintainer.md",
 		},
