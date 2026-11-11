@@ -24,7 +24,7 @@ const rule: DockerRuleDefinition<{ MessageIds: "duplicateInstruction" }> = {
 		type: "problem",
 		docs: {
 			description:
-				"Disallow multiple CMD, ENTRYPOINT, or HEALTHCHECK instructions in the same stage",
+				"Disallow multiple `CMD`, `ENTRYPOINT`, or `HEALTHCHECK` instructions in the same stage",
 			recommended: true,
 			url: "https://github.com/eslint/docker/blob/main/docs/rules/no-duplicate-instructions.md",
 		},
