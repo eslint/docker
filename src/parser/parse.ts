@@ -75,6 +75,13 @@ function createPositionConverter(
 }
 
 /**
+ * Escapes a string for literal use inside a regular expression.
+ */
+function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+}
+
+/**
  * Parses Dockerfile source code into an ESTree-style syntax tree. The
  * underlying parser is error-tolerant, so parsing never throws: malformed
  * input still produces a tree.
@@ -82,6 +89,10 @@ function createPositionConverter(
 export function parseDocker(text: string): DockerParseResult {
 	const dockerfile = DockerfileParser.parse(text);
 	const offsetAt = createPositionConverter(text);
+	const continuationPattern = new RegExp(
+		`${escapeRegExp(dockerfile.getEscapeCharacter())}[ \\t]*\\r?\\n`,
+		"gu",
+	);
 
 	const spanOf = (range: Range): { start: number; end: number } => ({
 		start: offsetAt(range.start),
@@ -173,6 +184,31 @@ export function parseDocker(text: string): DockerParseResult {
 		const args = convertArguments(instruction);
 
 		return args.length > 0 ? convertShellForm(args) : null;
+	}
+
+	/**
+	 * Combines all arguments of an instruction that takes its entire
+	 * remaining text as one value (such as WORKDIR, where a path may
+	 * contain whitespace). The value is the source text from the first to
+	 * the last argument with line continuations removed; offsets span the
+	 * same text.
+	 */
+	function joinArguments(args: ArgumentNode[]): ArgumentNode | null {
+		const first = args[0];
+		const last = args.at(-1);
+
+		if (!first || !last) {
+			return null;
+		}
+
+		return {
+			type: "Argument",
+			value: text
+				.slice(first.start, last.end)
+				.replace(continuationPattern, ""),
+			start: first.start,
+			end: last.end,
+		};
 	}
 
 	function convertPairs(
@@ -348,7 +384,7 @@ export function parseDocker(text: string): DockerParseResult {
 				return {
 					type: "WorkdirInstruction",
 					keyword,
-					path: args[0] ?? null,
+					path: joinArguments(args),
 					...span,
 				};
 			case "USER":
