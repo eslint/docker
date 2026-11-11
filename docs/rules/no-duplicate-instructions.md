@@ -1,10 +1,10 @@
 # no-duplicate-instructions
 
-Disallow multiple CMD, ENTRYPOINT, or HEALTHCHECK instructions in the same stage.
+Disallow multiple `CMD`, `ENTRYPOINT`, or `HEALTHCHECK` instructions in the same stage.
 
 ## Background
 
-Docker only honors the last CMD, ENTRYPOINT, and HEALTHCHECK instruction
+Docker only honors the last `CMD`, `ENTRYPOINT`, and `HEALTHCHECK` instruction
 in each build stage. Earlier occurrences are silently ignored:
 
 ```dockerfile
@@ -19,7 +19,7 @@ or a misunderstanding of how these instructions combine.
 
 ## Rule Details
 
-This rule warns on every CMD, ENTRYPOINT, and HEALTHCHECK instruction
+This rule warns on every `CMD`, `ENTRYPOINT`, and `HEALTHCHECK` instruction
 that is followed by another instruction with the same keyword in the same
 build stage. The last occurrence — the one Docker actually uses — is not
 reported. Stages in a multi-stage build are checked independently.
@@ -54,8 +54,8 @@ This rule has no options.
 
 ## When Not to Use It
 
-There is no valid reason to have duplicate CMD, ENTRYPOINT, or
-HEALTHCHECK instructions in one stage, so this rule should always be
+There is no valid reason to have duplicate `CMD`, `ENTRYPOINT`, or
+`HEALTHCHECK` instructions in one stage, so this rule should always be
 enabled.
 
 ## Prior Art
