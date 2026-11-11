@@ -9,7 +9,8 @@ with `cd` does not persist to the next instruction:
 
 ```dockerfile
 RUN cd /app
-RUN npm ci   # runs in /, not /app!
+# runs in /, not /app!
+RUN npm ci
 ```
 
 Even within a single RUN, using `cd` hides the working directory from
