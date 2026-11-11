@@ -39,8 +39,14 @@ const rule: DockerRuleDefinition<{
 		return {
 			FromInstruction(node) {
 				const { image, alias } = node;
+				// A stage reference is a bare name: with a tag or digest
+				// (`node:latest`), the image is pulled from a registry even
+				// if an earlier stage has the same name.
 				const isStageReference =
-					image !== null && stageNames.has(image.name.toLowerCase());
+					image !== null &&
+					image.tag === null &&
+					image.digest === null &&
+					stageNames.has(image.name.toLowerCase());
 
 				if (alias) {
 					stageNames.add(alias.name.toLowerCase());
