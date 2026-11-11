@@ -20,9 +20,58 @@ import type {
 
 /**
  * Tokens that can safely be converted into a JSON array element: no shell
- * metacharacters, quotes, or variable expansions.
+ * metacharacters, quotes, or variable expansions (including Windows
+ * `%VAR%` expansion in cmd.exe).
  */
-const SAFE_TOKEN = /^[\w./:=@%+,-]+$/u;
+const SAFE_TOKEN = /^[\w./:=@+,-]+$/u;
+
+/**
+ * A leading `NAME=value` word, which the shell treats as an environment
+ * assignment for the command rather than as the command itself.
+ */
+const ASSIGNMENT = /^[A-Za-z_]\w*=/u;
+
+/**
+ * Shell builtins that have no executable equivalent, so they cannot be
+ * run from the exec form.
+ */
+const SHELL_BUILTINS = new Set([
+	".",
+	":",
+	"alias",
+	"bg",
+	"break",
+	"builtin",
+	"cd",
+	"command",
+	"continue",
+	"declare",
+	"eval",
+	"exec",
+	"exit",
+	"export",
+	"fg",
+	"getopts",
+	"hash",
+	"jobs",
+	"let",
+	"local",
+	"read",
+	"readonly",
+	"return",
+	"set",
+	"shift",
+	"source",
+	"times",
+	"trap",
+	"type",
+	"typeset",
+	"ulimit",
+	"umask",
+	"unalias",
+	"unset",
+	"wait",
+]);
 
 //------------------------------------------------------------------------------
 // Rule Definition
@@ -45,6 +94,8 @@ const rule: DockerRuleDefinition<{ MessageIds: "useExecForm" }> = {
 	},
 
 	create(context) {
+		const { sourceCode } = context;
+
 		function check(
 			node: CmdInstructionNode | EntrypointInstructionNode,
 		): void {
@@ -55,10 +106,19 @@ const rule: DockerRuleDefinition<{ MessageIds: "useExecForm" }> = {
 			}
 
 			// Commands relying on shell features (variables, pipes,
-			// redirection, quoting) cannot be converted automatically.
-			const canFix = command.arguments.every(argument =>
-				SAFE_TOKEN.test(argument.value),
-			);
+			// redirection, quoting, environment assignments, builtins)
+			// cannot be converted automatically.
+			const first = command.arguments[0]?.value ?? "";
+			const canFix =
+				!ASSIGNMENT.test(first) &&
+				!SHELL_BUILTINS.has(first) &&
+				command.arguments.every(
+					argument =>
+						SAFE_TOKEN.test(argument.value) &&
+						SAFE_TOKEN.test(
+							sourceCode.text.slice(argument.start, argument.end),
+						),
+				);
 
 			context.report({
 				node: command,
