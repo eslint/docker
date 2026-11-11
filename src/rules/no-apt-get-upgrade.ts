@@ -21,6 +21,40 @@ const UPGRADE_SUBCOMMANDS = new Set([
 	"full-upgrade",
 ]);
 
+/**
+ * APT options whose value is given as the following word, such as
+ * `-o Acquire::Retries=3` or `-c apt.conf`.
+ */
+const VALUE_OPTIONS = new Set([
+	"-o",
+	"--option",
+	"-c",
+	"--config-file",
+	"-t",
+	"--target-release",
+	"--default-release",
+	"-a",
+	"--host-architecture",
+]);
+
+/**
+ * Returns the APT subcommand: the first word that is neither an option
+ * nor the value of an option.
+ */
+function findSubcommand(words: string[]): string | undefined {
+	for (let i = 0; i < words.length; i++) {
+		const word = words[i] as string;
+
+		if (VALUE_OPTIONS.has(word)) {
+			i++;
+		} else if (!word.startsWith("-")) {
+			return word;
+		}
+	}
+
+	return undefined;
+}
+
 //------------------------------------------------------------------------------
 // Rule Definition
 //------------------------------------------------------------------------------
@@ -49,14 +83,17 @@ const rule: DockerRuleDefinition<{ MessageIds: "noUpgrade" }> = {
 					return;
 				}
 
-				for (const command of splitShellCommands(node.command)) {
+				for (const command of splitShellCommands(
+					node.command,
+					sourceCode.text,
+				)) {
 					const [name, ...rest] = command.words;
 
 					if (name === undefined || !APT_COMMANDS.has(name)) {
 						continue;
 					}
 
-					const subcommand = rest.find(word => !word.startsWith("-"));
+					const subcommand = findSubcommand(rest);
 
 					if (
 						subcommand !== undefined &&

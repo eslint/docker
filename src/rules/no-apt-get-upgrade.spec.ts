@@ -25,8 +25,31 @@ ruleTester.run("no-apt-get-upgrade", rule as never, {
 		// The word upgrade elsewhere is fine.
 		"RUN pip install --upgrade pip",
 		'RUN ["apt-get", "upgrade"]',
+		// The configuration file name is not the subcommand.
+		"RUN apt-get -c upgrade update",
+		"RUN apt-get --config-file upgrade update",
+		// An escaped semicolon does not start a new command.
+		"RUN echo marker\\; sudo apt-get upgrade",
 	],
 	invalid: [
+		{
+			code: "RUN apt-get -o Acquire::Retries=3 upgrade -y",
+			errors: [
+				{
+					messageId: "noUpgrade",
+					data: { command: "apt-get", subcommand: "upgrade" },
+				},
+			],
+		},
+		{
+			code: "RUN apt -t bookworm-backports full-upgrade",
+			errors: [
+				{
+					messageId: "noUpgrade",
+					data: { command: "apt", subcommand: "full-upgrade" },
+				},
+			],
+		},
 		{
 			code: "RUN apt-get upgrade -y",
 			errors: [
