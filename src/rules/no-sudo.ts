@@ -19,7 +19,7 @@ const rule: DockerRuleDefinition<{ MessageIds: "noSudo" }> = {
 	meta: {
 		type: "problem",
 		docs: {
-			description: "Disallow `sudo` in RUN instructions",
+			description: "Disallow `sudo` in `RUN` instructions",
 			recommended: true,
 			url: "https://github.com/eslint/docker/blob/main/docs/rules/no-sudo.md",
 		},

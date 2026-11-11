@@ -1,23 +1,23 @@
 # no-sudo
 
-Disallow `sudo` in RUN instructions.
+Disallow `sudo` in `RUN` instructions.
 
 ## Background
 
-RUN instructions execute as the current USER, which is root by default,
+`RUN` instructions execute as the current `USER`, which is root by default,
 so `sudo` is unnecessary in most Dockerfiles. When the build does run as
 a non-root user, `sudo` is still the wrong tool: it is often not
 installed, it requires TTY and password configuration that does not exist
 in a build environment, and its signal-forwarding behavior causes
 surprising failures.
 
-The supported way to change privileges during a build is the USER
+The supported way to change privileges during a build is the `USER`
 instruction: switch to root for the instructions that need it, then
 switch back.
 
 ## Rule Details
 
-This rule warns when a shell-form RUN instruction invokes `sudo`,
+This rule warns when a shell-form `RUN` instruction invokes `sudo`,
 including inside compound commands joined by `&&`, `||`, `;`, or `|`.
 
 Examples of **incorrect** code for this rule:
