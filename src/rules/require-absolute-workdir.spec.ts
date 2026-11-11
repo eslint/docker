@@ -25,6 +25,7 @@ ruleTester.run("require-absolute-workdir", rule as never, {
 		"WORKDIR C:/app",
 		// Variables cannot be checked.
 		"WORKDIR $HOME",
+		'WORKDIR "$HOME/app"',
 		"WORKDIR ${APP_DIR}",
 		"WORKDIR %APP_HOME%",
 		"WORKDIR",
@@ -52,6 +53,26 @@ ruleTester.run("require-absolute-workdir", rule as never, {
 		},
 		{
 			code: 'WORKDIR "relative dir"',
+			errors: [{ messageId: "expectedAbsolute" }],
+		},
+		{
+			// Leading whitespace inside quotes is part of the path.
+			code: 'WORKDIR " relative dir"',
+			errors: [
+				{
+					messageId: "expectedAbsolute",
+					data: { path: " relative dir" },
+				},
+			],
+		},
+		{
+			// Single quotes suppress variable substitution.
+			code: "WORKDIR '$APP_HOME'",
+			errors: [{ messageId: "expectedAbsolute" }],
+		},
+		{
+			// A lone percent sign is not a variable reference.
+			code: "WORKDIR %cache",
 			errors: [{ messageId: "expectedAbsolute" }],
 		},
 	],

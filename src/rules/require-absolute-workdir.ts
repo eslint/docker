@@ -16,6 +16,9 @@ import type { DockerRuleDefinition } from "../types.js";
 
 const WINDOWS_ABSOLUTE = /^[A-Za-z]:[\\/]/u;
 
+/** A leading `%NAME%` Windows variable reference. */
+const WINDOWS_VARIABLE = /^%[^%\s]+%/u;
+
 //------------------------------------------------------------------------------
 // Rule Definition
 //------------------------------------------------------------------------------
@@ -42,12 +45,12 @@ const rule: DockerRuleDefinition<{ MessageIds: "expectedAbsolute" }> = {
 					return;
 				}
 
-				// Remove surrounding quotes, if any. A quoted path with
-				// spaces is split across tokens, so the quotes are stripped
-				// independently.
-				const path = node.path.value
-					.replace(/^["']/u, "")
-					.replace(/["']$/u, "");
+				// Remove surrounding quotes, if any. Single quotes suppress
+				// variable substitution, so their contents are literal.
+				const raw = node.path.value;
+				const quote = /^(["'])[\s\S]*\1$/u.exec(raw)?.[1];
+				const path = quote ? raw.slice(1, -1) : raw;
+				const expands = quote !== "'";
 
 				if (path === "") {
 					return;
@@ -57,8 +60,8 @@ const rule: DockerRuleDefinition<{ MessageIds: "expectedAbsolute" }> = {
 					path.startsWith("/") ||
 					WINDOWS_ABSOLUTE.test(path) ||
 					// Variable references cannot be checked.
-					path.startsWith("$") ||
-					path.startsWith("%");
+					(expands &&
+						(path.startsWith("$") || WINDOWS_VARIABLE.test(path)));
 
 				if (!isAbsolute) {
 					context.report({
