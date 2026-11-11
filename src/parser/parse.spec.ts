@@ -347,6 +347,22 @@ describe("parseDocker", () => {
 			expect(stopsignal.signal?.value).toBe("SIGTERM");
 		});
 
+		it("should keep whitespace in WORKDIR paths", () => {
+			const text = "WORKDIR /app/my project\n";
+			const { ast } = parseDocker(text);
+			const path = (ast.body[0] as WorkdirInstructionNode).path;
+
+			expect(path?.value).toBe("/app/my project");
+			expect(text.slice(path?.start, path?.end)).toBe("/app/my project");
+		});
+
+		it("should join WORKDIR paths across line continuations", () => {
+			const { ast } = parseDocker("WORKDIR /app/my\\\nproject\n");
+			const path = (ast.body[0] as WorkdirInstructionNode).path;
+
+			expect(path?.value).toBe("/app/myproject");
+		});
+
 		it("should handle missing arguments", () => {
 			const { ast } = parseDocker("WORKDIR\nUSER\n");
 
