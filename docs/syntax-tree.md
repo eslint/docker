@@ -121,7 +121,7 @@ FROM node:20
 RUN echo hello && echo world
 ```
 
-### FROM
+### `FROM`
 
 ```ts
 interface FromInstruction extends InstructionBase {
@@ -148,7 +148,7 @@ interface StageName extends DockerNodeBase {
 A `FROM` that references an earlier build stage still produces an
 `ImageReference`; its `name` is the stage name.
 
-### RUN, CMD, ENTRYPOINT, and SHELL
+### `RUN`, `CMD`, `ENTRYPOINT`, and `SHELL`
 
 ```ts
 interface RunInstruction extends InstructionBase {
@@ -177,7 +177,7 @@ interface ShellInstruction extends InstructionBase {
 }
 ```
 
-### COPY and ADD
+### `COPY` and `ADD`
 
 Both forms (`COPY a b /dest` and `COPY ["a", "b", "/dest"]`) produce the
 same shape: the last argument is the destination and the rest are sources.
@@ -200,7 +200,7 @@ interface AddInstruction extends InstructionBase {
 }
 ```
 
-### ENV, ARG, and LABEL
+### `ENV`, `ARG`, and `LABEL`
 
 All three produce `pairs` of key/value nodes. The legacy space-separated
 form `ENV key value` produces one pair whose value spans the rest of the
@@ -248,7 +248,7 @@ interface StopsignalInstruction extends InstructionBase {
 }
 ```
 
-### EXPOSE and VOLUME
+### `EXPOSE` and `VOLUME`
 
 ```ts
 interface ExposeInstruction extends InstructionBase {
@@ -264,7 +264,7 @@ interface VolumeInstruction extends InstructionBase {
 }
 ```
 
-### HEALTHCHECK
+### `HEALTHCHECK`
 
 ```ts
 interface HealthcheckInstruction extends InstructionBase {
@@ -276,10 +276,10 @@ interface HealthcheckInstruction extends InstructionBase {
 }
 ```
 
-### ONBUILD
+### `ONBUILD`
 
 The trigger is a full nested instruction node starting at its own keyword,
-so rules that visit instruction types also see ONBUILD triggers.
+so rules that visit instruction types also see `ONBUILD` triggers.
 
 ```ts
 interface OnbuildInstruction extends InstructionBase {
@@ -289,7 +289,7 @@ interface OnbuildInstruction extends InstructionBase {
 }
 ```
 
-### MAINTAINER and unknown instructions
+### `MAINTAINER` and unknown instructions
 
 ```ts
 interface MaintainerInstruction extends InstructionBase {
