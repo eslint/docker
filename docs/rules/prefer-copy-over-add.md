@@ -1,24 +1,24 @@
 # prefer-copy-over-add
 
-Require COPY instead of ADD for local files and directories.
+Require `COPY` instead of `ADD` for local files and directories.
 
 ## Background
 
-COPY and ADD both copy files into the image, but ADD has two extra
+`COPY` and `ADD` both copy files into the image, but `ADD` has two extra
 behaviors: it can download remote URLs, and it automatically extracts
 recognized archive formats. Those behaviors are implicit — a reader
 cannot tell from `ADD app.tar.gz /opt/` whether the archive ends up
-extracted or copied without knowing ADD's rules — and they have been the
+extracted or copied without knowing `ADD`'s rules — and they have been the
 source of security issues with attacker-controlled archives.
 
-The Docker documentation recommends COPY for the common case of copying
-local files, reserving ADD for the cases that actually need it.
+The Docker documentation recommends `COPY` for the common case of copying
+local files, reserving `ADD` for the cases that actually need it.
 
 ## Rule Details
 
-This rule warns when an ADD instruction copies local, non-archive
-sources, and fixes it by replacing ADD with COPY. The rule does not warn
-when ADD's extra behavior may be intended:
+This rule warns when an `ADD` instruction copies local, non-archive
+sources, and fixes it by replacing `ADD` with `COPY`. The rule does not warn
+when `ADD`'s extra behavior may be intended:
 
 - a source is a remote URL (`https://...`) or a Git reference (`git@...`),
 - a source looks like an archive (`.tar`, `.tar.gz`, `.tgz`, `.tar.bz2`,
@@ -56,11 +56,11 @@ This rule has no options.
 
 ## When Not to Use It
 
-If you rely on ADD behavior this rule cannot detect — for example,
+If you rely on `ADD` behavior this rule cannot detect — for example,
 extracting an archive whose name has no recognizable extension — disable
 the rule for that line with a configuration comment.
 
 ## Prior Art
 
 - [hadolint DL3020](https://github.com/hadolint/hadolint/wiki/DL3020)
-- [Dockerfile best practices: ADD or COPY](https://docs.docker.com/build/building/best-practices/#add-or-copy)
+- [Dockerfile best practices: `ADD` or `COPY`](https://docs.docker.com/build/building/best-practices/#add-or-copy)

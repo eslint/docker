@@ -36,7 +36,7 @@ const rule: DockerRuleDefinition<{ MessageIds: "useCopy" }> = {
 		type: "suggestion",
 		docs: {
 			description:
-				"Require COPY instead of ADD for local files and directories",
+				"Require `COPY` instead of `ADD` for local files and directories",
 			recommended: true,
 			url: "https://github.com/eslint/docker/blob/main/docs/rules/prefer-copy-over-add.md",
 		},
