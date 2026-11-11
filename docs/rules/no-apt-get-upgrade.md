@@ -1,6 +1,6 @@
 # no-apt-get-upgrade
 
-Disallow `apt-get upgrade` in RUN instructions.
+Disallow `apt-get upgrade` in `RUN` instructions.
 
 ## Background
 
@@ -17,7 +17,7 @@ reproducible.
 
 ## Rule Details
 
-This rule warns when a shell-form RUN instruction runs `apt-get` or `apt`
+This rule warns when a shell-form `RUN` instruction runs `apt-get` or `apt`
 with the `upgrade`, `dist-upgrade`, or `full-upgrade` subcommand,
 including inside compound commands joined by `&&`, `||`, `;`, or `|`.
 

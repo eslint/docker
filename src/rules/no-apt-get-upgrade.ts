@@ -63,7 +63,7 @@ const rule: DockerRuleDefinition<{ MessageIds: "noUpgrade" }> = {
 	meta: {
 		type: "problem",
 		docs: {
-			description: "Disallow `apt-get upgrade` in RUN instructions",
+			description: "Disallow `apt-get upgrade` in `RUN` instructions",
 			recommended: true,
 			url: "https://github.com/eslint/docker/blob/main/docs/rules/no-apt-get-upgrade.md",
 		},
