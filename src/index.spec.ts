@@ -35,6 +35,7 @@ describe("plugin", () => {
 			"no-cd-in-run",
 			"no-duplicate-instructions",
 			"no-maintainer",
+			"no-sudo",
 		]);
 	});
 
