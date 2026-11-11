@@ -5,6 +5,13 @@
  * @author Claude Fable 5
  */
 
+import type {
+	CustomRuleDefinitionType,
+	CustomRuleTypeDefinitions,
+	CustomRuleVisitorWithExit,
+} from "@eslint/plugin-kit";
+import type { DockerSourceCode } from "./languages/docker-source-code.js";
+
 //------------------------------------------------------------------------------
 // Base
 //------------------------------------------------------------------------------
@@ -326,3 +333,62 @@ export type DockerNode =
 	| StageNameNode
 	| ShellFormNode
 	| ExecFormNode;
+
+//------------------------------------------------------------------------------
+// Language options
+//------------------------------------------------------------------------------
+
+export interface DockerLanguageOptions {
+	[key: string]: unknown;
+}
+
+//------------------------------------------------------------------------------
+// Rules
+//------------------------------------------------------------------------------
+
+/**
+ * Visitor object for Dockerfile rules. Keys are node types, optionally with
+ * an `:exit` suffix.
+ */
+export type DockerRuleVisitor = CustomRuleVisitorWithExit<{
+	Dockerfile?(node: DockerfileNode): void;
+	Comment?(node: CommentNode): void;
+	ParserDirective?(node: ParserDirectiveNode): void;
+	FromInstruction?(node: FromInstructionNode): void;
+	RunInstruction?(node: RunInstructionNode): void;
+	CmdInstruction?(node: CmdInstructionNode): void;
+	EntrypointInstruction?(node: EntrypointInstructionNode): void;
+	ShellInstruction?(node: ShellInstructionNode): void;
+	CopyInstruction?(node: CopyInstructionNode): void;
+	AddInstruction?(node: AddInstructionNode): void;
+	EnvInstruction?(node: EnvInstructionNode): void;
+	ArgInstruction?(node: ArgInstructionNode): void;
+	LabelInstruction?(node: LabelInstructionNode): void;
+	WorkdirInstruction?(node: WorkdirInstructionNode): void;
+	UserInstruction?(node: UserInstructionNode): void;
+	ExposeInstruction?(node: ExposeInstructionNode): void;
+	VolumeInstruction?(node: VolumeInstructionNode): void;
+	StopsignalInstruction?(node: StopsignalInstructionNode): void;
+	HealthcheckInstruction?(node: HealthcheckInstructionNode): void;
+	OnbuildInstruction?(node: OnbuildInstructionNode): void;
+	MaintainerInstruction?(node: MaintainerInstructionNode): void;
+	GenericInstruction?(node: GenericInstructionNode): void;
+	Argument?(node: ArgumentNode): void;
+	Flag?(node: FlagNode): void;
+	KeyValuePair?(node: KeyValuePairNode): void;
+	ImageReference?(node: ImageReferenceNode): void;
+	StageName?(node: StageNameNode): void;
+	ShellForm?(node: ShellFormNode): void;
+	ExecForm?(node: ExecFormNode): void;
+}>;
+
+export type DockerRuleDefinitionTypeOptions = {
+	LangOptions: DockerLanguageOptions;
+	Code: DockerSourceCode;
+	Visitor: DockerRuleVisitor;
+	Node: DockerNode;
+};
+
+export type DockerRuleDefinition<
+	Options extends Partial<CustomRuleTypeDefinitions> = object,
+> = CustomRuleDefinitionType<DockerRuleDefinitionTypeOptions, Options>;
