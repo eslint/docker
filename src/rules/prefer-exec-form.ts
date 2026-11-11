@@ -82,7 +82,7 @@ const rule: DockerRuleDefinition<{ MessageIds: "useExecForm" }> = {
 		type: "suggestion",
 		docs: {
 			description:
-				"Require the exec (JSON array) form for CMD and ENTRYPOINT",
+				"Require the exec (JSON array) form for `CMD` and `ENTRYPOINT`",
 			recommended: true,
 			url: "https://github.com/eslint/docker/blob/main/docs/rules/prefer-exec-form.md",
 		},
