@@ -75,6 +75,11 @@ Each rule mirrors a well-known hadolint check or Docker best practice.
 | [`no-maintainer`](./docs/rules/no-maintainer.md)                                 | DL4000        | `MAINTAINER` is deprecated; use a `maintainer` `LABEL`                | ✅      | error       |
 | [`no-sudo`](./docs/rules/no-sudo.md)                                             | DL3004        | Don't use `sudo` in `RUN`; switch users with `USER`                   |         | error       |
 | [`prefer-copy-over-add`](./docs/rules/prefer-copy-over-add.md)                   | DL3020        | Use `COPY` unless you need `ADD`'s URL or archive handling            | ✅      | error       |
+| [`prefer-exec-form`](./docs/rules/prefer-exec-form.md)                           | DL3025        | Use the exec (JSON array) form for `CMD` and `ENTRYPOINT`             | ✅      | warn        |
+
+Fixable rules only autofix when the rewrite is unambiguous — for example,
+`no-cd-in-run` only converts a `RUN` that consists of a single `cd` command,
+and `prefer-exec-form` leaves commands that rely on shell features alone.
 
 ## Configuration comments
 
