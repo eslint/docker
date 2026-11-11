@@ -7,8 +7,11 @@ Require the exec (JSON array) form for CMD and ENTRYPOINT.
 CMD and ENTRYPOINT accept two forms:
 
 ```dockerfile
-CMD npm start                # shell form
-CMD ["npm", "start"]         # exec form
+# shell form
+CMD npm start
+
+# exec form
+CMD ["npm", "start"]
 ```
 
 The shell form wraps the command in `/bin/sh -c`, so the shell — not your
