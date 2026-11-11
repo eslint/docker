@@ -27,7 +27,7 @@ const rule: DockerRuleDefinition<{ MessageIds: "expectedAbsolute" }> = {
 	meta: {
 		type: "problem",
 		docs: {
-			description: "Require WORKDIR paths to be absolute",
+			description: "Require `WORKDIR` paths to be absolute",
 			recommended: true,
 			url: "https://github.com/eslint/docker/blob/main/docs/rules/require-absolute-workdir.md",
 		},
