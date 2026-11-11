@@ -38,7 +38,10 @@ const rule: DockerRuleDefinition<{ MessageIds: "noSudo" }> = {
 					return;
 				}
 
-				for (const command of splitShellCommands(node.command)) {
+				for (const command of splitShellCommands(
+					node.command,
+					sourceCode.text,
+				)) {
 					if (command.words[0] === "sudo") {
 						context.report({
 							loc: sourceCode.getLoc(
