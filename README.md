@@ -76,6 +76,7 @@ Each rule mirrors a well-known hadolint check or Docker best practice.
 | [`no-sudo`](./docs/rules/no-sudo.md)                                             | DL3004        | Don't use `sudo` in `RUN`; switch users with `USER`                   |         | error       |
 | [`prefer-copy-over-add`](./docs/rules/prefer-copy-over-add.md)                   | DL3020        | Use `COPY` unless you need `ADD`'s URL or archive handling            | ✅      | error       |
 | [`prefer-exec-form`](./docs/rules/prefer-exec-form.md)                           | DL3025        | Use the exec (JSON array) form for `CMD` and `ENTRYPOINT`             | ✅      | warn        |
+| [`require-absolute-workdir`](./docs/rules/require-absolute-workdir.md)           | DL3000        | `WORKDIR` paths must be absolute                                      |         | error       |
 
 Fixable rules only autofix when the rewrite is unambiguous — for example,
 `no-cd-in-run` only converts a `RUN` that consists of a single `cd` command,

@@ -17,6 +17,7 @@ import noMaintainer from "./rules/no-maintainer.js";
 import noSudo from "./rules/no-sudo.js";
 import preferCopyOverAdd from "./rules/prefer-copy-over-add.js";
 import preferExecForm from "./rules/prefer-exec-form.js";
+import requireAbsoluteWorkdir from "./rules/require-absolute-workdir.js";
 
 const rules = {
 	"consistent-instruction-casing": consistentInstructionCasing,
@@ -27,6 +28,7 @@ const rules = {
 	"no-sudo": noSudo,
 	"prefer-copy-over-add": preferCopyOverAdd,
 	"prefer-exec-form": preferExecForm,
+	"require-absolute-workdir": requireAbsoluteWorkdir,
 };
 
 const plugin = {
@@ -59,6 +61,7 @@ const plugin = {
 				"docker/no-sudo": "error",
 				"docker/prefer-copy-over-add": "error",
 				"docker/prefer-exec-form": "warn",
+				"docker/require-absolute-workdir": "error",
 			} as const,
 		},
 	},
