@@ -67,7 +67,7 @@ Each rule mirrors a well-known hadolint check or Docker best practice.
 | -------------------------------------------------------------------------------- | -------- | ------------------------------------------------------ | ------- | ----------- |
 | [`consistent-instruction-casing`](./docs/rules/consistent-instruction-casing.md) | —        | Instruction keywords should be uppercase               | ✅      | error       |
 | [`no-apt-get-upgrade`](./docs/rules/no-apt-get-upgrade.md)                       | DL3005   | Don't `apt-get upgrade`; update the base image instead |         | error       |
-| [`no-cd-in-run`](./docs/rules/no-cd-in-run.md)                                   | DL3003   | Use WORKDIR instead of `cd` in RUN                     | ✅      | error       |
+| [`no-cd-in-run`](./docs/rules/no-cd-in-run.md)                                   | DL3003   | Use `WORKDIR` instead of `cd` in `RUN`                 | ✅      | error       |
 
 ## Configuration comments
 
