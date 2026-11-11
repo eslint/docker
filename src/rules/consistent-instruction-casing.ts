@@ -39,8 +39,13 @@ const rule: DockerRuleDefinition<{ MessageIds: "expectedUppercase" }> = {
 		const { sourceCode } = context;
 
 		function check(node: InstructionNode): void {
-			const keywordEnd = node.start + node.keyword.length;
-			const written = sourceCode.text.slice(node.start, keywordEnd);
+			// The keyword in the source is the first whitespace-delimited
+			// word. Its length can differ from the normalized keyword's
+			// (for example, "straße" normalizes to "STRASSE").
+			const written = /^\S*/u.exec(
+				sourceCode.text.slice(node.start, node.end),
+			)?.[0] as string;
+			const keywordEnd = node.start + written.length;
 
 			if (written === node.keyword) {
 				return;

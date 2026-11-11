@@ -38,7 +38,7 @@ const plugin = {
 			plugins: {},
 			rules: {
 				"docker/consistent-instruction-casing": "error",
-			},
+			} as const,
 		},
 	},
 };
