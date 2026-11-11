@@ -10,7 +10,8 @@ in each build stage. Earlier occurrences are silently ignored:
 ```dockerfile
 FROM node:20
 CMD ["node", "server.js"]
-CMD ["node", "worker.js"]   # only this one takes effect
+# only this one takes effect
+CMD ["node", "worker.js"]
 ```
 
 A duplicate is almost always a mistake — usually a leftover from an edit
