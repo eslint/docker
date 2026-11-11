@@ -23,7 +23,8 @@ does not append its arguments to an exec-form ENTRYPOINT.
 
 This rule warns when a CMD or ENTRYPOINT instruction uses the shell
 form. When the command is a simple sequence of words with no shell
-features (variables, quoting, pipes, redirection), the rule fixes it by
+features (variables, quoting, pipes, redirection, leading environment
+assignments, or shell builtins such as `exec`), the rule fixes it by
 rewriting the command as a JSON array. Commands that rely on shell
 features are reported without a fix, since converting them requires
 deciding how to handle the shell.
