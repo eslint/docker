@@ -10,9 +10,11 @@
 //------------------------------------------------------------------------------
 import { DockerLanguage } from "./languages/docker-language.js";
 import consistentInstructionCasing from "./rules/consistent-instruction-casing.js";
+import noAptGetUpgrade from "./rules/no-apt-get-upgrade.js";
 
 const rules = {
 	"consistent-instruction-casing": consistentInstructionCasing,
+	"no-apt-get-upgrade": noAptGetUpgrade,
 };
 
 const plugin = {
@@ -38,6 +40,7 @@ const plugin = {
 			plugins: {},
 			rules: {
 				"docker/consistent-instruction-casing": "error",
+				"docker/no-apt-get-upgrade": "error",
 			} as const,
 		},
 	},
