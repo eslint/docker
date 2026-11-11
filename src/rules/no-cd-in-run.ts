@@ -12,6 +12,16 @@ import { splitShellCommands, spanOfTokens } from "./utils.js";
 import type { DockerNode, DockerRuleDefinition } from "../types.js";
 
 //------------------------------------------------------------------------------
+// Helpers
+//------------------------------------------------------------------------------
+
+/**
+ * A path without shell operators, quoting, globs, or expansions, which
+ * means the same thing to `cd` and to WORKDIR.
+ */
+const LITERAL_PATH = /^[\w./@+-]+$/u;
+
+//------------------------------------------------------------------------------
 // Rule Definition
 //------------------------------------------------------------------------------
 
@@ -41,7 +51,10 @@ const rule: DockerRuleDefinition<{ MessageIds: "useWorkdir" }> = {
 					return;
 				}
 
-				const commands = splitShellCommands(node.command);
+				const commands = splitShellCommands(
+					node.command,
+					sourceCode.text,
+				);
 
 				for (const command of commands) {
 					if (command.words[0] !== "cd") {
@@ -49,13 +62,26 @@ const rule: DockerRuleDefinition<{ MessageIds: "useWorkdir" }> = {
 					}
 
 					// `RUN cd /dir` on its own does nothing except hide a
-					// missing WORKDIR, so it can be fixed directly.
-					const directory = command.words[1];
+					// missing WORKDIR, so it can be fixed directly. Only
+					// a plain `cd` with a literal path qualifies: attached
+					// operators, subshells, quoting, and expansions (such
+					// as `~` or `$HOME`) would change meaning in WORKDIR.
+					const [cdToken, directoryToken] = command.tokens;
+					const directory =
+						directoryToken &&
+						sourceCode.text.slice(
+							directoryToken.start,
+							directoryToken.end,
+						);
 					const canFix =
 						commands.length === 1 &&
 						command.tokens.length === 2 &&
 						node.flags.length === 0 &&
+						cdToken !== undefined &&
+						sourceCode.text.slice(cdToken.start, cdToken.end) ===
+							"cd" &&
 						directory !== undefined &&
+						LITERAL_PATH.test(directory) &&
 						!/[\n\r]/u.test(
 							sourceCode.text.slice(node.start, node.end),
 						);
