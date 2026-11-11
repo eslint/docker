@@ -30,7 +30,7 @@ const rule: DockerRuleDefinition<{ MessageIds: "useWorkdir" }> = {
 		type: "suggestion",
 		docs: {
 			description:
-				"Disallow `cd` in RUN instructions in favor of WORKDIR",
+				"Disallow `cd` in `RUN` instructions in favor of `WORKDIR`",
 			recommended: true,
 			url: "https://github.com/eslint/docker/blob/main/docs/rules/no-cd-in-run.md",
 		},
