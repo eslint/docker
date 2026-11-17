@@ -341,7 +341,7 @@ export type DockerNode =
 // Language options
 //------------------------------------------------------------------------------
 
-export interface DockerLanguageOptions {
+export interface DockerFileLanguageOptions {
 	[key: string]: unknown;
 }
 
@@ -386,7 +386,7 @@ export type DockerRuleVisitor = CustomRuleVisitorWithExit<{
 }>;
 
 export type DockerRuleDefinitionTypeOptions = {
-	LangOptions: DockerLanguageOptions;
+	LangOptions: DockerFileLanguageOptions;
 	Code: DockerFileSourceCode;
 	Visitor: DockerRuleVisitor;
 	Node: DockerNode;

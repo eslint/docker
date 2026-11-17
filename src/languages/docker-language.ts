@@ -15,7 +15,7 @@ import { DockerFileSourceCode } from "./docker-source-code.js";
 import { visitorKeys } from "../visitor-keys.js";
 import type {
 	CommentNode,
-	DockerLanguageOptions,
+	DockerFileLanguageOptions,
 	DockerNode,
 	DockerfileNode,
 } from "../types.js";
@@ -28,7 +28,7 @@ export type DockerOkParseResult = OkParseResult<DockerfileNode> & {
  * ESLint Language implementation for Dockerfiles.
  */
 export class DockerFileLanguage implements Language<{
-	LangOptions: DockerLanguageOptions;
+	LangOptions: DockerFileLanguageOptions;
 	Code: DockerFileSourceCode;
 	RootNode: DockerfileNode;
 	Node: DockerNode;
@@ -39,9 +39,9 @@ export class DockerFileLanguage implements Language<{
 	nodeTypeKey = "type";
 	visitorKeys = visitorKeys;
 
-	defaultLanguageOptions: DockerLanguageOptions = {};
+	defaultLanguageOptions: DockerFileLanguageOptions = {};
 
-	validateLanguageOptions(languageOptions: DockerLanguageOptions): void {
+	validateLanguageOptions(languageOptions: DockerFileLanguageOptions): void {
 		// The Docker language currently has no options.
 		for (const key of Object.keys(languageOptions)) {
 			throw new TypeError(`Unknown language option "${key}".`);
@@ -50,7 +50,7 @@ export class DockerFileLanguage implements Language<{
 
 	parse(
 		file: File,
-		_context?: LanguageContext<DockerLanguageOptions>,
+		_context?: LanguageContext<DockerFileLanguageOptions>,
 	): ParseResult<DockerfileNode> {
 		const text = file.body as string;
 

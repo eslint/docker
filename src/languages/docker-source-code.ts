@@ -20,7 +20,7 @@ import type {
 import { visitorKeys } from "../visitor-keys.js";
 import type {
 	CommentNode,
-	DockerLanguageOptions,
+	DockerFileLanguageOptions,
 	DockerNode,
 	DockerfileNode,
 } from "../types.js";
@@ -40,7 +40,7 @@ const DIRECTIVE_TYPES = new Map<string, DirectiveType>([
 	["eslint-disable-next-line", "disable-next-line"],
 ]);
 
-export interface DockerSourceCodeOptions {
+export interface DockerFileSourceCodeOptions {
 	text: string;
 	ast: DockerfileNode;
 }
@@ -51,7 +51,7 @@ export interface DockerSourceCodeOptions {
  * those offsets, so nodes have no `loc` or `range` properties.
  */
 export class DockerFileSourceCode extends TextSourceCodeBase<{
-	LangOptions: DockerLanguageOptions;
+	LangOptions: DockerFileLanguageOptions;
 	RootNode: DockerfileNode;
 	SyntaxElementWithLoc: DockerNode;
 	ConfigNode: CommentNode;
@@ -64,7 +64,7 @@ export class DockerFileSourceCode extends TextSourceCodeBase<{
 	#lineOffsets: number[] | null = null;
 	#inlineConfigComments: CommentNode[] | null = null;
 
-	constructor({ text, ast }: DockerSourceCodeOptions) {
+	constructor({ text, ast }: DockerFileSourceCodeOptions) {
 		super({ text, ast });
 		this.comments = ast.comments;
 	}
