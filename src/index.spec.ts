@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
-import { DockerLanguage } from "./languages/docker-language.js";
+import { DockerFileLanguage } from "./languages/docker-language.js";
 
 //------------------------------------------------------------------------------
 // Tests
@@ -23,7 +23,7 @@ describe("plugin", () => {
 	});
 
 	it("should expose the dockerfile language", () => {
-		expect(plugin.languages.dockerfile).toBeInstanceOf(DockerLanguage);
+		expect(plugin.languages.dockerfile).toBeInstanceOf(DockerFileLanguage);
 	});
 
 	describe("recommended config", () => {

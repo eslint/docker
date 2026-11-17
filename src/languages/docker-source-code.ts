@@ -1,5 +1,5 @@
 /**
- * @fileoverview The DockerSourceCode class, the SourceCode implementation
+ * @fileoverview The DockerFileSourceCode class, the SourceCode implementation
  * that ESLint uses to interact with a parsed Dockerfile.
  */
 
@@ -50,7 +50,7 @@ export interface DockerSourceCodeOptions {
  * character offsets; `getLoc()` and `getRange()` derive positions from
  * those offsets, so nodes have no `loc` or `range` properties.
  */
-export class DockerSourceCode extends TextSourceCodeBase<{
+export class DockerFileSourceCode extends TextSourceCodeBase<{
 	LangOptions: DockerLanguageOptions;
 	RootNode: DockerfileNode;
 	SyntaxElementWithLoc: DockerNode;

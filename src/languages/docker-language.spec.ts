@@ -1,15 +1,15 @@
 /**
- * @fileoverview Tests for the DockerLanguage class.
+ * @fileoverview Tests for the DockerFileLanguage class.
  */
 
 import { describe, expect, it } from "vitest";
-import { DockerLanguage } from "./docker-language.js";
-import { DockerSourceCode } from "./docker-source-code.js";
+import { DockerFileLanguage } from "./docker-language.js";
+import { DockerFileSourceCode } from "./docker-source-code.js";
 import type { DockerOkParseResult } from "./docker-language.js";
 
-const language = new DockerLanguage();
+const language = new DockerFileLanguage();
 
-describe("DockerLanguage", () => {
+describe("DockerFileLanguage", () => {
 	it("should describe itself as a 1-based text language", () => {
 		expect(language.fileType).toBe("text");
 		expect(language.lineStart).toBe(1);
@@ -77,7 +77,7 @@ describe("DockerLanguage", () => {
 	});
 
 	describe("createSourceCode", () => {
-		it("should create a DockerSourceCode from a parse result", () => {
+		it("should create a DockerFileSourceCode from a parse result", () => {
 			const file = {
 				body: "FROM node:20\n",
 				path: "Dockerfile",
@@ -87,7 +87,7 @@ describe("DockerLanguage", () => {
 			const result = language.parse(file) as DockerOkParseResult;
 			const sourceCode = language.createSourceCode(file, result);
 
-			expect(sourceCode).toBeInstanceOf(DockerSourceCode);
+			expect(sourceCode).toBeInstanceOf(DockerFileSourceCode);
 			expect(sourceCode.text).toBe(file.body);
 			expect(sourceCode.ast).toBe(result.ast);
 		});

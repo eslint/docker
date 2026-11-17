@@ -1,5 +1,5 @@
 /**
- * @fileoverview The DockerLanguage class, the ESLint Language implementation
+ * @fileoverview The DockerFileLanguage class, the ESLint Language implementation
  * for Dockerfiles.
  */
 
@@ -11,7 +11,7 @@ import type {
 	ParseResult,
 } from "@eslint/core";
 import { parseDocker } from "../parser/parse.js";
-import { DockerSourceCode } from "./docker-source-code.js";
+import { DockerFileSourceCode } from "./docker-source-code.js";
 import { visitorKeys } from "../visitor-keys.js";
 import type {
 	CommentNode,
@@ -27,9 +27,9 @@ export type DockerOkParseResult = OkParseResult<DockerfileNode> & {
 /**
  * ESLint Language implementation for Dockerfiles.
  */
-export class DockerLanguage implements Language<{
+export class DockerFileLanguage implements Language<{
 	LangOptions: DockerLanguageOptions;
-	Code: DockerSourceCode;
+	Code: DockerFileSourceCode;
 	RootNode: DockerfileNode;
 	Node: DockerNode;
 }> {
@@ -80,8 +80,8 @@ export class DockerLanguage implements Language<{
 	createSourceCode(
 		file: File,
 		parseResult: DockerOkParseResult,
-	): DockerSourceCode {
-		return new DockerSourceCode({
+	): DockerFileSourceCode {
+		return new DockerFileSourceCode({
 			text: file.body as string,
 			ast: parseResult.ast,
 		});

@@ -1,9 +1,9 @@
 /**
- * @fileoverview Tests for the DockerSourceCode class.
+ * @fileoverview Tests for the DockerFileSourceCode class.
  */
 
 import { describe, expect, it } from "vitest";
-import { DockerSourceCode } from "./docker-source-code.js";
+import { DockerFileSourceCode } from "./docker-source-code.js";
 import { parseDocker } from "../parser/parse.js";
 import type {
 	DockerNode,
@@ -12,13 +12,13 @@ import type {
 	ShellFormNode,
 } from "../types.js";
 
-function createSourceCode(text: string): DockerSourceCode {
+function createSourceCode(text: string): DockerFileSourceCode {
 	const { ast } = parseDocker(text);
 
-	return new DockerSourceCode({ text, ast });
+	return new DockerFileSourceCode({ text, ast });
 }
 
-describe("DockerSourceCode", () => {
+describe("DockerFileSourceCode", () => {
 	describe("getLoc and getRange", () => {
 		it("should derive positions from start/end offsets", () => {
 			const text = "FROM node:20\nRUN echo hi\n";
