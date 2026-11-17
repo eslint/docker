@@ -10,7 +10,7 @@ import type {
 	CustomRuleTypeDefinitions,
 	CustomRuleVisitorWithExit,
 } from "@eslint/plugin-kit";
-import type { DockerSourceCode } from "./languages/docker-source-code.js";
+import type { DockerFileSourceCode } from "./languages/docker-source-code.js";
 
 //------------------------------------------------------------------------------
 // Base
@@ -387,7 +387,7 @@ export type DockerRuleVisitor = CustomRuleVisitorWithExit<{
 
 export type DockerRuleDefinitionTypeOptions = {
 	LangOptions: DockerLanguageOptions;
-	Code: DockerSourceCode;
+	Code: DockerFileSourceCode;
 	Visitor: DockerRuleVisitor;
 	Node: DockerNode;
 };

@@ -8,7 +8,7 @@
 //------------------------------------------------------------------------------
 // Plugin
 //------------------------------------------------------------------------------
-import { DockerLanguage } from "./languages/docker-language.js";
+import { DockerFileLanguage } from "./languages/docker-language.js";
 
 const plugin = {
 	meta: {
@@ -17,7 +17,7 @@ const plugin = {
 		version: "0.0.0", // x-release-please-version
 	},
 	languages: {
-		dockerfile: new DockerLanguage(),
+		dockerfile: new DockerFileLanguage(),
 	},
 	configs: {
 		recommended: {
@@ -43,8 +43,8 @@ const plugin = {
 Object.assign(plugin.configs.recommended.plugins, { docker: plugin });
 
 export default plugin;
-export { DockerLanguage } from "./languages/docker-language.js";
-export { DockerSourceCode } from "./languages/docker-source-code.js";
+export { DockerFileLanguage } from "./languages/docker-language.js";
+export { DockerFileSourceCode } from "./languages/docker-source-code.js";
 export { parseDocker } from "./parser/parse.js";
 export { visitorKeys } from "./visitor-keys.js";
 export { INSTRUCTION_TYPES } from "./types.js";
