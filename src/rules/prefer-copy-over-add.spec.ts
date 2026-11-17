@@ -3,13 +3,13 @@
  */
 
 import { RuleTester } from "eslint";
-import { DockerLanguage } from "../languages/docker-language.js";
+import { DockerFileLanguage } from "../languages/docker-language.js";
 import rule from "./prefer-copy-over-add.js";
 
 const ruleTester = new RuleTester({
 	plugins: {
 		docker: {
-			languages: { dockerfile: new DockerLanguage() },
+			languages: { dockerfile: new DockerFileLanguage() },
 		},
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any -- plugin shape is validated by ESLint at runtime.
 	} as any,
