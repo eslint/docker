@@ -22,20 +22,45 @@ const UPGRADE_SUBCOMMANDS = new Set([
 ]);
 
 /**
- * APT options whose value is given as the following word, such as
- * `-o Acquire::Retries=3` or `-c apt.conf`.
+ * Long APT options whose value is given as the following word, such as
+ * `--option Acquire::Retries=3` or `--solver internal`.
  */
-const VALUE_OPTIONS = new Set([
-	"-o",
+const VALUE_LONG_OPTIONS = new Set([
 	"--option",
-	"-c",
 	"--config-file",
-	"-t",
 	"--target-release",
 	"--default-release",
-	"-a",
 	"--host-architecture",
+	"--solver",
+	"--snapshot",
 ]);
+
+/**
+ * Short APT options that take a value, such as `-o Acquire::Retries=3`
+ * or `-c apt.conf`. The value is either the rest of the word (`-tbookworm`)
+ * or, when the option ends the word, the following word.
+ */
+const VALUE_SHORT_OPTIONS = new Set(["o", "c", "t", "a", "S"]);
+
+/**
+ * Returns whether an option word consumes the following word as its
+ * value. Short-option clusters such as `-qo` are read one letter at a
+ * time, the way APT parses them.
+ */
+function takesNextWord(word: string): boolean {
+	if (word.startsWith("--")) {
+		return VALUE_LONG_OPTIONS.has(word);
+	}
+
+	for (let i = 1; i < word.length; i++) {
+		if (VALUE_SHORT_OPTIONS.has(word[i] as string)) {
+			// The rest of the word, if any, is the option's value.
+			return i === word.length - 1;
+		}
+	}
+
+	return false;
+}
 
 /**
  * Returns the APT subcommand: the first word that is neither an option
@@ -45,10 +70,12 @@ function findSubcommand(words: string[]): string | undefined {
 	for (let i = 0; i < words.length; i++) {
 		const word = words[i] as string;
 
-		if (VALUE_OPTIONS.has(word)) {
-			i++;
-		} else if (!word.startsWith("-")) {
+		if (word === "-" || !word.startsWith("-")) {
 			return word;
+		}
+
+		if (takesNextWord(word)) {
+			i++;
 		}
 	}
 
