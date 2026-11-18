@@ -27,9 +27,30 @@ ruleTester.run("require-image-tag", rule as never, {
 		// References to earlier build stages need no tag.
 		"FROM node:20 AS base\nFROM base",
 		"FROM node:20 AS Base\nFROM base AS other",
+		// Continued lines are joined before matching stage names.
+		"FROM node:20 AS bu\\\nild\nFROM build",
 		"FROM",
 	],
 	invalid: [
+		{
+			// A registry image is not a reference to a same-named stage.
+			code: "FROM node:20 AS base\nFROM registry.example.com/base",
+			errors: [
+				{
+					messageId: "missingTag",
+					data: { image: "registry.example.com/base" },
+				},
+			],
+		},
+		{
+			code: "FROM registry.example.com/scratch",
+			errors: [{ messageId: "missingTag" }],
+		},
+		{
+			// Continued lines are joined before checking the tag.
+			code: "FROM node:lat\\\nest",
+			errors: [{ messageId: "latestTag", data: { image: "node" } }],
+		},
 		{
 			code: "FROM node",
 			errors: [
