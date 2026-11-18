@@ -31,7 +31,9 @@ const ADD_ONLY_FLAGS = new Set(["checksum", "keep-git-dir", "unpack"]);
 // Rule Definition
 //------------------------------------------------------------------------------
 
-const rule: DockerRuleDefinition<{ MessageIds: "useCopy" }> = {
+const rule: DockerRuleDefinition<{
+	MessageIds: "useCopy" | "replaceWithCopy";
+}> = {
 	meta: {
 		type: "suggestion",
 		docs: {
@@ -40,10 +42,11 @@ const rule: DockerRuleDefinition<{ MessageIds: "useCopy" }> = {
 			recommended: true,
 			url: "https://github.com/eslint/docker/blob/main/docs/rules/prefer-copy-over-add.md",
 		},
-		fixable: "code",
+		hasSuggestions: true,
 		schema: [],
 		messages: {
 			useCopy: "Use COPY instead of ADD for local files and directories.",
+			replaceWithCopy: "Replace ADD with COPY.",
 		},
 	},
 
@@ -83,14 +86,23 @@ const rule: DockerRuleDefinition<{ MessageIds: "useCopy" }> = {
 					return;
 				}
 
+				// Docker detects archives by their contents, not their
+				// names, so a local source without an archive extension
+				// may still be extracted by ADD. The replacement is
+				// therefore offered as a suggestion rather than a fix.
 				context.report({
 					node,
 					messageId: "useCopy",
-					fix: fixer =>
-						fixer.replaceTextRange(
-							[node.start, node.start + 3],
-							"COPY",
-						),
+					suggest: [
+						{
+							messageId: "replaceWithCopy",
+							fix: fixer =>
+								fixer.replaceTextRange(
+									[node.start, node.start + 3],
+									"COPY",
+								),
+						},
+					],
 				});
 			},
 		};
