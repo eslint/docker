@@ -49,6 +49,12 @@ ruleTester.run("no-maintainer", rule as never, {
 			errors: [{ messageId: "useLabel" }],
 		},
 		{
+			// LABEL would decode the doubled escape character.
+			code: "# escape=`\nFROM scratch\nMAINTAINER Jane``Doe",
+			output: null,
+			errors: [{ messageId: "useLabel" }],
+		},
+		{
 			// A MAINTAINER without a value has nothing to convert.
 			code: "MAINTAINER",
 			output: null,

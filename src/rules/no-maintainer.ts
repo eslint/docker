@@ -42,9 +42,12 @@ const rule: DockerRuleDefinition<{ MessageIds: "useLabel" }> = {
 						: "";
 
 				// Only fix simple single-line values without quoting
-				// concerns. MAINTAINER keeps `$` literally, but LABEL
-				// expands variables even inside double quotes.
-				const canFix = argsText !== "" && !/[\n\r"\\$]/u.test(argsText);
+				// concerns. MAINTAINER keeps `$` and escape characters
+				// literally, but LABEL expands variables even inside
+				// double quotes and decodes escapes. A `# escape=`
+				// directive can make a backtick the escape character.
+				const canFix =
+					argsText !== "" && !/[\n\r"\\$`]/u.test(argsText);
 
 				context.report({
 					node,
