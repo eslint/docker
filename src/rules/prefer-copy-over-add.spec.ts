@@ -47,25 +47,51 @@ ruleTester.run("prefer-copy-over-add", rule as never, {
 	invalid: [
 		{
 			code: "ADD src/ /app/",
-			output: "COPY src/ /app/",
+			output: null,
 			errors: [
 				{
 					messageId: "useCopy",
 					line: 1,
 					column: 1,
 					endColumn: 15,
+					suggestions: [
+						{
+							messageId: "replaceWithCopy",
+							output: "COPY src/ /app/",
+						},
+					],
 				},
 			],
 		},
 		{
 			code: "ADD --chown=node:node src/ lib/ /app/",
-			output: "COPY --chown=node:node src/ lib/ /app/",
-			errors: [{ messageId: "useCopy" }],
+			output: null,
+			errors: [
+				{
+					messageId: "useCopy",
+					suggestions: [
+						{
+							messageId: "replaceWithCopy",
+							output: "COPY --chown=node:node src/ lib/ /app/",
+						},
+					],
+				},
+			],
 		},
 		{
 			code: "add config.json /etc/app/config.json",
-			output: "COPY config.json /etc/app/config.json",
-			errors: [{ messageId: "useCopy" }],
+			output: null,
+			errors: [
+				{
+					messageId: "useCopy",
+					suggestions: [
+						{
+							messageId: "replaceWithCopy",
+							output: "COPY config.json /etc/app/config.json",
+						},
+					],
+				},
+			],
 		},
 	],
 });

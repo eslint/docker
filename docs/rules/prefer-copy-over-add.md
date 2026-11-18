@@ -17,8 +17,12 @@ local files, reserving `ADD` for the cases that actually need it.
 ## Rule Details
 
 This rule warns when an `ADD` instruction copies local, non-archive
-sources, and fixes it by replacing `ADD` with `COPY`. The rule does not warn
-when `ADD`'s extra behavior may be intended:
+sources, and suggests replacing `ADD` with `COPY`. The replacement is a
+suggestion rather than an automatic fix because Docker recognizes archives
+by their contents, not their file names: a local archive without an
+archive extension is still extracted by `ADD`, so check the sources before
+applying it. The rule does not warn when `ADD`'s extra behavior may be
+intended:
 
 - a source is a remote URL (`https://...`) or a Git reference (`git@...`),
 - a source looks like an archive (`.tar`, `.tar.gz`, `.tgz`, `.tar.bz2`,
@@ -47,7 +51,7 @@ FROM node:20
 COPY src/ /app/src/
 ADD https://example.com/release.tar.gz /tmp/
 ADD rootfs.tar.gz /
-ADD --checksum=sha256:24454f830c... files/ /app/
+ADD --checksum=sha256:24454f830cdb571e2c4ad15481119c43b3cafd48dd869a9b2945d1036d1dc68d https://example.com/tool.tar.gz /opt/
 ```
 
 ## Options
