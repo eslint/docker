@@ -23,9 +23,11 @@ declaratively, persists across instructions, and applies to `CMD` and
 This rule warns when a shell-form `RUN` instruction uses `cd` as a command,
 including inside compound commands joined by `&&`, `||`, `;`, or `|`.
 
-When a `RUN` instruction consists of nothing but a single `cd` (which does
-nothing at all), the rule fixes it by replacing the instruction with an
-equivalent `WORKDIR`. Compound commands are reported without a fix because
+When a `RUN` instruction consists of nothing but a single `cd` to an
+absolute path (which does nothing at all), the rule fixes it by replacing
+the instruction with an equivalent `WORKDIR`. Relative paths, `cd -`, and
+`cd` options are reported without a fix because `cd` resolves them
+differently from `WORKDIR`. Compound commands are reported without a fix because
 the correct rewrite depends on the surrounding commands.
 
 Examples of **incorrect** code for this rule:
