@@ -72,10 +72,33 @@ describe("plugin integration", () => {
 		});
 	});
 
-	it("should not produce fatal errors for malformed input", () => {
+	it("should parse malformed input without any messages", () => {
 		const messages = lint("]]] this is not really a dockerfile [[[\n");
 
+		expect(messages).toEqual([]);
+	});
+
+	it("should run the recommended rules on malformed input", () => {
+		const messages = lint(
+			[
+				"]]] this is not really a dockerfile [[[",
+				"FROM",
+				"RUN",
+				"CMD [",
+				'ENTRYPOINT ["unterminated',
+				"WORKDIR",
+				"ADD",
+				"MAINTAINER",
+				"",
+			].join("\n"),
+			docker.configs.recommended.rules,
+		);
+
 		expect(messages.filter(message => message.fatal)).toEqual([]);
+		// Only the deprecated MAINTAINER keyword is a real problem here.
+		expect(messages.map(message => message.ruleId)).toEqual([
+			"docker/no-maintainer",
+		]);
 	});
 
 	it("should run multiple rules together", () => {
