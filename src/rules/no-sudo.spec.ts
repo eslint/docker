@@ -23,6 +23,8 @@ ruleTester.run("no-sudo", rule as never, {
 		"RUN apt-get install -y sudo",
 		'RUN ["sudo", "ls"]',
 		"USER root\nRUN apt-get update",
+		// Commands after a shell comment never run.
+		"RUN echo ok # example && sudo id",
 	],
 	invalid: [
 		{
