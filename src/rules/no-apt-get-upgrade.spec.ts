@@ -28,10 +28,31 @@ ruleTester.run("no-apt-get-upgrade", rule as never, {
 		// The configuration file name is not the subcommand.
 		"RUN apt-get -c upgrade update",
 		"RUN apt-get --config-file upgrade update",
+		"RUN apt-get -qc upgrade update",
+		"RUN apt-get --solver upgrade update",
+		"RUN apt-get -oAcquire::Retries=3 update",
+		// A comment ends the command.
+		"RUN apt-get update # && apt-get upgrade",
 		// An escaped semicolon does not start a new command.
 		"RUN echo marker\\; sudo apt-get upgrade",
 	],
 	invalid: [
+		...[
+			"RUN apt-get --solver internal upgrade",
+			"RUN apt-get --snapshot 20240301T030400Z upgrade",
+			"RUN apt-get -S 20240301T030400Z upgrade",
+			"RUN apt-get -qo Acquire::Retries=3 upgrade",
+			"RUN apt-get -oAcquire::Retries=3 upgrade",
+			"RUN apt-get --option=Acquire::Retries=3 upgrade",
+		].map(code => ({
+			code,
+			errors: [
+				{
+					messageId: "noUpgrade" as const,
+					data: { command: "apt-get", subcommand: "upgrade" },
+				},
+			],
+		})),
 		{
 			code: "RUN apt-get -o Acquire::Retries=3 upgrade -y",
 			errors: [

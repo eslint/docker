@@ -21,6 +21,11 @@ This rule warns when a shell-form `RUN` instruction runs `apt-get` or `apt`
 with the `upgrade`, `dist-upgrade`, or `full-upgrade` subcommand,
 including inside compound commands joined by `&&`, `||`, `;`, or `|`.
 
+The rule splits compound commands only at operators written as separate
+words (`a && b`) or at a `;` that ends a word (`a; b`). An operator
+attached to a neighboring word, as in `echo ok&& apt-get upgrade`, does not
+start a new command, so an upgrade after it is not reported.
+
 Examples of **incorrect** code for this rule:
 
 ```dockerfile
