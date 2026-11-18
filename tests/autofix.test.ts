@@ -44,12 +44,18 @@ describe("autofix", () => {
 		);
 	});
 
-	it("should convert ADD to COPY", () => {
+	it("should suggest, not autofix, converting ADD to COPY", () => {
 		const result = fix("ADD src/ /app/src/\n", {
 			"docker/prefer-copy-over-add": "error",
 		});
 
-		expect(result.output).toBe("COPY src/ /app/src/\n");
+		expect(result.fixed).toBe(false);
+		expect(result.output).toBe("ADD src/ /app/src/\n");
+		expect(result.messages).toHaveLength(1);
+		expect(result.messages[0]?.suggestions?.[0]?.fix).toEqual({
+			range: [0, 3],
+			text: "COPY",
+		});
 	});
 
 	it("should convert a lone RUN cd to WORKDIR", () => {
@@ -70,17 +76,10 @@ describe("autofix", () => {
 
 	it("should apply fixes from multiple rules at once", () => {
 		const result = fix(
-			[
-				"from node:20",
-				"maintainer jane",
-				"add src/ /app/",
-				"cmd npm start",
-				"",
-			].join("\n"),
+			["from node:20", "maintainer jane", "cmd npm start", ""].join("\n"),
 			{
 				"docker/consistent-instruction-casing": "error",
 				"docker/no-maintainer": "error",
-				"docker/prefer-copy-over-add": "error",
 				"docker/prefer-exec-form": "error",
 			},
 		);
@@ -90,7 +89,6 @@ describe("autofix", () => {
 			[
 				"FROM node:20",
 				'LABEL maintainer="jane"',
-				"COPY src/ /app/",
 				'CMD ["npm", "start"]',
 				"",
 			].join("\n"),
