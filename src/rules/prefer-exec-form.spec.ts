@@ -87,6 +87,40 @@ ruleTester.run("prefer-exec-form", rule as never, {
 			output: null,
 			errors: [{ messageId: "useExecForm" }],
 		},
+		// After SHELL, the command may need that shell.
+		{
+			code: 'SHELL ["powershell", "-command"]\nCMD Write-Host hello',
+			output: null,
+			errors: [{ messageId: "useExecForm" }],
+		},
+		{
+			code: 'FROM base AS a\nSHELL ["pwsh", "-c"]\nFROM a\nCMD Write-Host hello',
+			output: null,
+			errors: [{ messageId: "useExecForm" }],
+		},
+		// SHELL after the instruction does not apply to it.
+		{
+			code: 'CMD npm start\nSHELL ["/bin/bash", "-c"]',
+			output: 'CMD ["npm", "start"]\nSHELL ["/bin/bash", "-c"]',
+			errors: [{ messageId: "useExecForm" }],
+		},
+		// An exec-form ENTRYPOINT would start receiving CMD as arguments.
+		{
+			code: 'ENTRYPOINT /bin/sleep 60\nCMD ["--invalid"]',
+			output: null,
+			errors: [{ messageId: "useExecForm" }],
+		},
+		{
+			code: 'CMD ["--invalid"]\nENTRYPOINT /bin/sleep 60',
+			output: null,
+			errors: [{ messageId: "useExecForm" }],
+		},
+		// CMD in another stage does not apply.
+		{
+			code: 'FROM a\nCMD ["--invalid"]\nFROM b\nENTRYPOINT /bin/sleep 60',
+			output: 'FROM a\nCMD ["--invalid"]\nFROM b\nENTRYPOINT ["/bin/sleep", "60"]',
+			errors: [{ messageId: "useExecForm" }],
+		},
 		// Arguments that are not assignments still convert.
 		{
 			code: "CMD node app.js --port=8080",

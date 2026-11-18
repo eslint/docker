@@ -19,8 +19,11 @@ program — becomes PID 1. Signals such as the SIGTERM sent by
 `docker stop` go to the shell and are typically not forwarded, which
 means containers take the full stop timeout and are then killed. The
 exec form runs the program directly, so it receives signals and shuts
-down cleanly. The two forms also compose differently: a shell-form `CMD`
-does not append its arguments to an exec-form `ENTRYPOINT`.
+down cleanly. The two forms also compose differently: with an exec-form
+`ENTRYPOINT`, a shell-form `CMD` is appended as the shell invocation
+followed by the command (`/bin/sh -c "npm start"`) rather than as the
+command's own words, and a shell-form `ENTRYPOINT` ignores `CMD`
+entirely.
 
 ## Rule Details
 
@@ -31,6 +34,15 @@ assignments, or shell builtins such as `exec`), the rule fixes it by
 rewriting the command as a JSON array. Commands that rely on shell
 features are reported without a fix, since converting them requires
 deciding how to handle the shell.
+
+The rule also reports without a fix when:
+
+- a `SHELL` instruction appears earlier in the file, because the command
+  may be written for that shell (for example, PowerShell cmdlets) rather
+  than being an executable, or
+- the instruction is an `ENTRYPOINT` in a stage that sets `CMD`, because
+  an exec-form `ENTRYPOINT` receives `CMD` as arguments while the
+  shell form ignores it.
 
 `RUN` instructions are not checked; the shell form is the normal way to
 write them.
