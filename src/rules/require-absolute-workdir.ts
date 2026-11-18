@@ -19,6 +19,34 @@ const WINDOWS_ABSOLUTE = /^[A-Za-z]:[\\/]/u;
 /** A leading `%NAME%` Windows variable reference. */
 const WINDOWS_VARIABLE = /^%[^%\s]+%/u;
 
+/**
+ * Removes shell-style quotes anywhere in a WORKDIR operand, the way Docker
+ * combines `"/opt/my app"/src` into `/opt/my app/src`. Returns the
+ * resulting path and whether its first character came from inside single
+ * quotes, where variable references are literal.
+ */
+function unquote(raw: string): { path: string; literalStart: boolean } {
+	let path = "";
+	let quote: string | null = null;
+	let literalStart = false;
+
+	for (const character of raw) {
+		if (quote === null && (character === '"' || character === "'")) {
+			quote = character;
+		} else if (character === quote) {
+			quote = null;
+		} else {
+			if (path === "") {
+				literalStart = quote === "'";
+			}
+
+			path += character;
+		}
+	}
+
+	return { path, literalStart };
+}
+
 //------------------------------------------------------------------------------
 // Rule Definition
 //------------------------------------------------------------------------------
@@ -45,12 +73,10 @@ const rule: DockerRuleDefinition<{ MessageIds: "expectedAbsolute" }> = {
 					return;
 				}
 
-				// Remove surrounding quotes, if any. Single quotes suppress
-				// variable substitution, so their contents are literal.
-				const raw = node.path.value;
-				const quote = /^(["'])[\s\S]*\1$/u.exec(raw)?.[1];
-				const path = quote ? raw.slice(1, -1) : raw;
-				const expands = quote !== "'";
+				// Remove quotes. Single quotes suppress variable
+				// substitution, so their contents are literal.
+				const { path, literalStart } = unquote(node.path.value);
+				const expands = !literalStart;
 
 				if (path === "") {
 					return;

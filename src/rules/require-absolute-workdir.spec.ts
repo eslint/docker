@@ -21,6 +21,10 @@ ruleTester.run("require-absolute-workdir", rule as never, {
 		"WORKDIR /app",
 		"WORKDIR /usr/src/app",
 		'WORKDIR "/quoted path"',
+		// Quoted prefixes combine with the rest of the operand.
+		'WORKDIR "/opt/my app"/src',
+		"WORKDIR '/opt'/src",
+		'WORKDIR ""/app',
 		// Windows-style absolute paths.
 		"WORKDIR C:/app",
 		// Variables cannot be checked.
@@ -31,6 +35,19 @@ ruleTester.run("require-absolute-workdir", rule as never, {
 		"WORKDIR",
 	],
 	invalid: [
+		{
+			// Single-quoted variable references are literal.
+			code: "WORKDIR '$HOME'/app",
+			errors: [
+				{ messageId: "expectedAbsolute", data: { path: "$HOME/app" } },
+			],
+		},
+		{
+			code: 'WORKDIR "my app"/src',
+			errors: [
+				{ messageId: "expectedAbsolute", data: { path: "my app/src" } },
+			],
+		},
 		{
 			code: "WORKDIR app",
 			errors: [
