@@ -16,10 +16,12 @@ import type { DockerNode, DockerRuleDefinition } from "../types.js";
 //------------------------------------------------------------------------------
 
 /**
- * A path without shell operators, quoting, globs, or expansions, which
- * means the same thing to `cd` and to WORKDIR.
+ * An absolute path without shell operators, quoting, globs, or expansions,
+ * which means the same thing to `cd` and to WORKDIR. Relative paths are
+ * excluded because `cd` may resolve them through `CDPATH`, and `cd -`
+ * and options such as `-P` have no WORKDIR equivalent.
  */
-const LITERAL_PATH = /^[\w./@+-]+$/u;
+const ABSOLUTE_LITERAL_PATH = /^\/[\w./@+-]*$/u;
 
 //------------------------------------------------------------------------------
 // Rule Definition
@@ -63,9 +65,10 @@ const rule: DockerRuleDefinition<{ MessageIds: "useWorkdir" }> = {
 
 					// `RUN cd /dir` on its own does nothing except hide a
 					// missing WORKDIR, so it can be fixed directly. Only
-					// a plain `cd` with a literal path qualifies: attached
-					// operators, subshells, quoting, and expansions (such
-					// as `~` or `$HOME`) would change meaning in WORKDIR.
+					// a plain `cd` with an absolute literal path
+					// qualifies: attached operators, subshells, quoting,
+					// and expansions (such as `~` or `$HOME`) would change
+					// meaning in WORKDIR.
 					const [cdToken, directoryToken] = command.tokens;
 					const directory =
 						directoryToken &&
@@ -81,7 +84,7 @@ const rule: DockerRuleDefinition<{ MessageIds: "useWorkdir" }> = {
 						sourceCode.text.slice(cdToken.start, cdToken.end) ===
 							"cd" &&
 						directory !== undefined &&
-						LITERAL_PATH.test(directory) &&
+						ABSOLUTE_LITERAL_PATH.test(directory) &&
 						!/[\n\r]/u.test(
 							sourceCode.text.slice(node.start, node.end),
 						);
