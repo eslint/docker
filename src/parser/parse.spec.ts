@@ -132,6 +132,52 @@ describe("parseDocker", () => {
 			expect(from.alias).toBeNull();
 		});
 
+		it("should keep the registry in the image name", () => {
+			for (const [text, name, tag] of [
+				[
+					"FROM registry.example.com/base\n",
+					"registry.example.com/base",
+					null,
+				],
+				[
+					"FROM localhost:5000/team/app:1.2\n",
+					"localhost:5000/team/app",
+					"1.2",
+				],
+				[
+					"FROM docker.io/library/node:20\n",
+					"docker.io/library/node",
+					"20",
+				],
+				["FROM ghcr.io/org/app\n", "ghcr.io/org/app", null],
+				["FROM org/app:1\n", "org/app", "1"],
+			] as const) {
+				const from = parseDocker(text).ast
+					.body[0] as FromInstructionNode;
+
+				expect(from.image).toMatchObject({ name, tag });
+			}
+		});
+
+		it("should remove line continuations from image parts and aliases", () => {
+			const text = "FROM ghcr.io/org/ap\\\npp:lat\\\nest AS bu\\\nild\n";
+			const from = parseDocker(text).ast.body[0] as FromInstructionNode;
+
+			expect(from.image).toMatchObject({
+				name: "ghcr.io/org/appp",
+				tag: "latest",
+			});
+			expect(from.alias?.name).toBe("build");
+		});
+
+		it("should remove continuations using the escape directive", () => {
+			const text = "# escape=`\nFROM node:2`\n0 AS a`\nb\n";
+			const from = parseDocker(text).ast.body[0] as FromInstructionNode;
+
+			expect(from.image?.tag).toBe("20");
+			expect(from.alias?.name).toBe("ab");
+		});
+
 		it("should handle FROM without an image", () => {
 			const { ast } = parseDocker("FROM\n");
 			const from = ast.body[0] as FromInstructionNode;

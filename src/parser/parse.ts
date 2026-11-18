@@ -238,6 +238,16 @@ export function parseDocker(text: string): DockerParseResult {
 			const imageRange = instruction.getImageRange();
 			const stageName = instruction.getBuildStage();
 			const stageRange = instruction.getBuildStageRange();
+			const registry = instruction.getRegistry();
+			const imageName = instruction.getImageName() ?? "";
+
+			// dockerfile-ast returns the source spelling of these parts,
+			// including line continuations, and drops the registry from
+			// the image name.
+			const joinLines = <T extends string | null>(value: T): T =>
+				(value === null
+					? value
+					: value.replace(continuationPattern, "")) as T;
 
 			return {
 				type: "FromInstruction",
@@ -246,9 +256,13 @@ export function parseDocker(text: string): DockerParseResult {
 				image: imageRange
 					? {
 							type: "ImageReference",
-							name: instruction.getImageName() ?? "",
-							tag: instruction.getImageTag(),
-							digest: instruction.getImageDigest(),
+							name: joinLines(
+								registry === null
+									? imageName
+									: `${registry}/${imageName}`,
+							),
+							tag: joinLines(instruction.getImageTag()),
+							digest: joinLines(instruction.getImageDigest()),
 							...spanOf(imageRange),
 						}
 					: null,
@@ -256,7 +270,7 @@ export function parseDocker(text: string): DockerParseResult {
 					stageName !== null && stageRange
 						? {
 								type: "StageName",
-								name: stageName,
+								name: joinLines(stageName),
 								...spanOf(stageRange),
 							}
 						: null,
