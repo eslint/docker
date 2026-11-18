@@ -5,7 +5,8 @@
  * split a token list into simple commands using standalone operator tokens
  * and trailing semicolons, tracking quote state so that quoted operators
  * (`echo "a && b"`) do not split; they intentionally do not implement full
- * shell parsing.
+ * shell parsing. An unquoted word starting with `#` begins a shell comment
+ * and ends the scan.
  */
 
 //------------------------------------------------------------------------------
@@ -40,7 +41,7 @@ export interface ShellCommand {
 /**
  * Splits shell-form arguments into simple commands on `&&`, `||`, `;`,
  * `|`, and `&` operator tokens, as well as on tokens ending with an
- * unquoted, unescaped `;`. Quoting and escaping are read from the source
+ * unquoted, unescaped `;`. Scanning stops at an unquoted shell comment. Quoting and escaping are read from the source
  * text because argument values already have some escapes resolved.
  */
 export function splitShellCommands(
@@ -105,19 +106,21 @@ export function splitShellCommands(
 	};
 
 	for (const argument of shellForm.arguments) {
-		if (
-			quote === null &&
-			COMMAND_SEPARATORS.has(
-				sourceText.slice(argument.start, argument.end),
-			)
-		) {
+		const raw = sourceText.slice(argument.start, argument.end);
+
+		if (quote === null && raw.startsWith("#")) {
+			// The shell ignores the rest of the line after a comment.
+			break;
+		}
+
+		if (quote === null && COMMAND_SEPARATORS.has(raw)) {
 			push();
 			continue;
 		}
 
 		current.push(argument);
 
-		if (consumeQuotes(sourceText.slice(argument.start, argument.end))) {
+		if (consumeQuotes(raw)) {
 			push(true);
 		}
 	}

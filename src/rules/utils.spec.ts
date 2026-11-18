@@ -102,6 +102,23 @@ describe("splitShellCommands", () => {
 		expect(commands).toHaveLength(1);
 	});
 
+	it("should ignore words after an unquoted shell comment", () => {
+		const commands = split("echo ok # example && sudo id");
+
+		expect(commands.map(command => command.words)).toEqual([
+			["echo", "ok"],
+		]);
+	});
+
+	it("should not treat a quoted or mid-word # as a comment", () => {
+		const commands = split("echo '# a' b#c && ls");
+
+		expect(commands.map(command => command.words)).toEqual([
+			["echo", "'#", "a'", "b#c"],
+			["ls"],
+		]);
+	});
+
 	it("should keep token nodes alongside the cleaned words", () => {
 		const commands = split("cd /app; make");
 		const first = commands[0];
