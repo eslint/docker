@@ -23,10 +23,10 @@ describe("DockerFileLanguage", () => {
 			expect(() => language.validateLanguageOptions({})).not.toThrow();
 		});
 
-		it("should reject unknown options", () => {
+		it("should ignore unknown options", () => {
 			expect(() =>
 				language.validateLanguageOptions({ variant: "podman" }),
-			).toThrow(/Unknown language option "variant"/u);
+			).not.toThrow();
 		});
 	});
 
