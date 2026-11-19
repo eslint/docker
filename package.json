@@ -2,6 +2,7 @@
   "name": "@eslint/docker",
   "version": "0.0.0",
   "description": "Dockerfile language plugin for ESLint",
+  "author": "Nicholas C. Zakas",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.js",
@@ -24,6 +25,10 @@
     "type": "git",
     "url": "git+https://github.com/eslint/docker.git"
   },
+  "bugs": {
+    "url": "https://github.com/eslint/docker/issues"
+  },
+  "homepage": "https://github.com/eslint/docker#readme",
   "keywords": [
     "eslint",
     "eslint-plugin",
