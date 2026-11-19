@@ -41,11 +41,9 @@ export class DockerFileLanguage implements Language<{
 
 	defaultLanguageOptions: DockerFileLanguageOptions = {};
 
-	validateLanguageOptions(languageOptions: DockerFileLanguageOptions): void {
-		// The Docker language currently has no options.
-		for (const key of Object.keys(languageOptions)) {
-			throw new TypeError(`Unknown language option "${key}".`);
-		}
+	validateLanguageOptions(_languageOptions: DockerFileLanguageOptions): void {
+		// The Docker language currently has no options. By convention,
+		// unknown language options are ignored rather than rejected.
 	}
 
 	parse(
