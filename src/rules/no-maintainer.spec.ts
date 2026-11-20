@@ -55,6 +55,30 @@ ruleTester.run("no-maintainer", rule as never, {
 			errors: [{ messageId: "useLabel" }],
 		},
 		{
+			// Docker consumes the -- delimiter, so it is not part of the value.
+			code: "MAINTAINER -- Jane",
+			output: null,
+			errors: [{ messageId: "useLabel" }],
+		},
+		{
+			// Docker trims the trailing non-breaking space.
+			code: "MAINTAINER Jane ",
+			output: null,
+			errors: [{ messageId: "useLabel" }],
+		},
+		{
+			// The fix would overwrite an existing maintainer label.
+			code: "FROM node:20\nLABEL maintainer=release-team\nMAINTAINER Jane",
+			output: null,
+			errors: [{ messageId: "useLabel" }],
+		},
+		{
+			// A maintainer label in an earlier stage does not block the fix.
+			code: "FROM node:20\nLABEL maintainer=team\nFROM node:20\nMAINTAINER Jane",
+			output: 'FROM node:20\nLABEL maintainer=team\nFROM node:20\nLABEL maintainer="Jane"',
+			errors: [{ messageId: "useLabel" }],
+		},
+		{
 			// A MAINTAINER without a value has nothing to convert.
 			code: "MAINTAINER",
 			output: null,
