@@ -31,10 +31,47 @@ ruleTester.run("require-absolute-workdir", rule as never, {
 		"WORKDIR $HOME",
 		'WORKDIR "$HOME/app"',
 		"WORKDIR ${APP_DIR}",
-		"WORKDIR %APP_HOME%",
 		"WORKDIR",
+		// Dockerfile escapes are removed before the check.
+		"WORKDIR \\/app",
+		"# escape=`\nFROM scratch\nWORKDIR `/app",
+		// Comment lines inside a continuation are not part of the path.
+		'WORKDIR ""\\\n# comment\n/app',
+		// Drive letters are absolute when the stage may target Windows.
+		"FROM --platform=windows/amd64 example/app\nWORKDIR C:/app",
+		"WORKDIR C:\\app",
 	],
 	invalid: [
+		{
+			// BuildKit does not expand %NAME% in WORKDIR.
+			code: "WORKDIR %APP_HOME%",
+			errors: [{ messageId: "expectedAbsolute" }],
+		},
+		{
+			// An empty operand keeps the previous working directory.
+			code: 'WORKDIR ""',
+			errors: [{ messageId: "expectedAbsolute", data: { path: "" } }],
+		},
+		{
+			// A drive letter is a relative path component on Linux.
+			code: "FROM --platform=linux/amd64 alpine\nWORKDIR C:/app",
+			errors: [{ messageId: "expectedAbsolute" }],
+		},
+		{
+			// A $ without a variable name is kept literally.
+			code: "WORKDIR $/cache",
+			errors: [{ messageId: "expectedAbsolute" }],
+		},
+		{
+			// $'...' is not expanded by Docker.
+			code: "WORKDIR $'HOME'/cache",
+			errors: [{ messageId: "expectedAbsolute" }],
+		},
+		{
+			// An escaped $ is literal.
+			code: "WORKDIR \\$HOME/app",
+			errors: [{ messageId: "expectedAbsolute" }],
+		},
 		{
 			// Single-quoted variable references are literal.
 			code: "WORKDIR '$HOME'/app",

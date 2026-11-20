@@ -16,35 +16,54 @@ import type { DockerRuleDefinition } from "../types.js";
 
 const WINDOWS_ABSOLUTE = /^[A-Za-z]:[\\/]/u;
 
-/** A leading `%NAME%` Windows variable reference. */
-const WINDOWS_VARIABLE = /^%[^%\s]+%/u;
+/** A character that can start a variable name after `$`. */
+const VARIABLE_START = /^[A-Za-z_{]/u;
 
 /**
- * Removes shell-style quotes anywhere in a WORKDIR operand, the way Docker
- * combines `"/opt/my app"/src` into `/opt/my app/src`. Returns the
- * resulting path and whether its first character came from inside single
- * quotes, where variable references are literal.
+ * Removes quotes and Dockerfile escapes anywhere in a WORKDIR operand, the
+ * way Docker combines `"/opt/my app"/src` into `/opt/my app/src` and
+ * `\/app` into `/app`. Returns the resulting path and whether it starts
+ * with a variable reference that Docker expands: an unescaped `$` outside
+ * single quotes, directly followed by a variable name or `{`.
  */
-function unquote(raw: string): { path: string; literalStart: boolean } {
+function unquote(
+	raw: string,
+	escapeCharacter: string,
+): { path: string; startsWithVariable: boolean } {
 	let path = "";
 	let quote: string | null = null;
-	let literalStart = false;
+	let startsWithVariable = false;
 
-	for (const character of raw) {
-		if (quote === null && (character === '"' || character === "'")) {
+	for (let i = 0; i < raw.length; i++) {
+		const character = raw[i] as string;
+
+		if (
+			character === escapeCharacter &&
+			quote !== "'" &&
+			i + 1 < raw.length
+		) {
+			// The escaped character is literal, including `$`.
+			i++;
+			path += raw[i];
+		} else if (quote === null && (character === '"' || character === "'")) {
 			quote = character;
 		} else if (character === quote) {
 			quote = null;
 		} else {
-			if (path === "") {
-				literalStart = quote === "'";
+			if (
+				path === "" &&
+				character === "$" &&
+				quote !== "'" &&
+				VARIABLE_START.test(raw.slice(i + 1))
+			) {
+				startsWithVariable = true;
 			}
 
 			path += character;
 		}
 	}
 
-	return { path, literalStart };
+	return { path, startsWithVariable };
 }
 
 //------------------------------------------------------------------------------
@@ -67,27 +86,51 @@ const rule: DockerRuleDefinition<{ MessageIds: "expectedAbsolute" }> = {
 	},
 
 	create(context) {
+		const { sourceCode } = context;
+		const escapeCharacter =
+			sourceCode.ast.directives.find(
+				directive => directive.name.toLowerCase() === "escape",
+			)?.value ?? "\\";
+
+		// Whether the current stage explicitly targets Linux, where a
+		// drive letter is an ordinary relative path component.
+		let linuxStage = false;
+
 		return {
+			FromInstruction(node) {
+				const platform = node.flags.find(
+					flag => flag.name === "platform",
+				);
+
+				linuxStage = /^linux(?:\/|$)/iu.test(platform?.value ?? "");
+			},
+
 			WorkdirInstruction(node) {
 				if (!node.path) {
 					return;
 				}
 
-				// Remove quotes. Single quotes suppress variable
-				// substitution, so their contents are literal.
-				const { path, literalStart } = unquote(node.path.value);
-				const expands = !literalStart;
+				// Remove quotes and escapes. Single quotes suppress
+				// variable substitution, so their contents are literal.
+				const { path, startsWithVariable } = unquote(
+					node.path.value,
+					escapeCharacter,
+				);
 
-				if (path === "") {
-					return;
-				}
-
+				// An empty operand (`WORKDIR ""`) keeps the previous working
+				// directory, which is as fragile as a relative path.
 				const isAbsolute =
 					path.startsWith("/") ||
-					WINDOWS_ABSOLUTE.test(path) ||
+					// Windows paths such as `C:\app` are often written with
+					// the default escape character, so also check the
+					// operand without escape processing.
+					(!linuxStage &&
+						(WINDOWS_ABSOLUTE.test(path) ||
+							WINDOWS_ABSOLUTE.test(
+								unquote(node.path.value, "").path,
+							))) ||
 					// Variable references cannot be checked.
-					(expands &&
-						(path.startsWith("$") || WINDOWS_VARIABLE.test(path)));
+					startsWithVariable;
 
 				if (!isAbsolute) {
 					context.report({
