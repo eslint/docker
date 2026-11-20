@@ -121,6 +121,58 @@ ruleTester.run("prefer-exec-form", rule as never, {
 			output: 'FROM a\nCMD ["--invalid"]\nFROM b\nENTRYPOINT ["/bin/sleep", "60"]',
 			errors: [{ messageId: "useExecForm" }],
 		},
+		// A later stage built on this one inherits the ENTRYPOINT.
+		{
+			code: 'FROM alpine AS base\nENTRYPOINT /bin/sleep 60\nFROM base\nCMD ["--invalid"]',
+			output: null,
+			errors: [{ messageId: "useExecForm" }],
+		},
+		// A child stage that replaces the ENTRYPOINT does not block the fix.
+		{
+			code: 'FROM alpine AS base\nENTRYPOINT /bin/sleep 60\nFROM base\nENTRYPOINT ["/bin/true"]\nCMD ["x"]',
+			output: 'FROM alpine AS base\nENTRYPOINT ["/bin/sleep", "60"]\nFROM base\nENTRYPOINT ["/bin/true"]\nCMD ["x"]',
+			errors: [{ messageId: "useExecForm" }],
+		},
+		// A bracket that does not start a JSON array is shell form.
+		{
+			code: "CMD [ -f /ready ]",
+			output: null,
+			errors: [{ messageId: "useExecForm" }],
+		},
+		// The external echo may behave differently from the builtin.
+		{
+			code: "CMD echo -e ready",
+			output: null,
+			errors: [{ messageId: "useExecForm" }],
+		},
+		{
+			code: "CMD /usr/bin/echo ready",
+			output: 'CMD ["/usr/bin/echo", "ready"]',
+			errors: [{ messageId: "useExecForm" }],
+		},
+		// An escaped blank keeps two words together.
+		{
+			code: "CMD /bin/cat report\\ final.txt",
+			output: null,
+			errors: [{ messageId: "useExecForm" }],
+		},
+		// Windows images use cmd.exe as the default shell.
+		{
+			code: "FROM mcr.microsoft.com/windows/servercore:ltsc2022\nCMD dir",
+			output: null,
+			errors: [{ messageId: "useExecForm" }],
+		},
+		{
+			code: "FROM --platform=windows/amd64 example/app\nCMD dir",
+			output: null,
+			errors: [{ messageId: "useExecForm" }],
+		},
+		// ONBUILD triggers are reported without a fix.
+		{
+			code: "ONBUILD CMD /app/start",
+			output: null,
+			errors: [{ messageId: "useExecForm", column: 13 }],
+		},
 		// Arguments that are not assignments still convert.
 		{
 			code: "CMD node app.js --port=8080",

@@ -74,6 +74,41 @@ const SHELL_BUILTINS = new Set([
 	"wait",
 ]);
 
+/**
+ * Shell builtins whose external executable behaves differently, such as
+ * `echo -e`, which dash's builtin prints literally but GNU `echo`
+ * interprets. Converting these changes the program that runs.
+ */
+const AMBIGUOUS_BUILTINS = new Set([
+	"[",
+	"echo",
+	"false",
+	"kill",
+	"printf",
+	"pwd",
+	"test",
+	"true",
+]);
+
+/**
+ * Image references and platforms that indicate a Windows image, where the
+ * default shell is `cmd.exe` rather than a POSIX shell.
+ */
+const WINDOWS_IMAGE = /(?:^|\/)(?:windows|servercore|nanoserver)(?:[/:@]|$)/iu;
+const WINDOWS_PLATFORM = /^windows(?:\/|$)/iu;
+
+/**
+ * Information about a build stage needed to decide whether a fix is safe.
+ */
+interface StageInfo {
+	instructions: InstructionNode[];
+	name: string | null;
+	base: string | null;
+	windows: boolean;
+	hasCmd: boolean;
+	hasEntrypoint: boolean;
+}
+
 //------------------------------------------------------------------------------
 // Rule Definition
 //------------------------------------------------------------------------------
@@ -100,14 +135,14 @@ const rule: DockerRuleDefinition<{ MessageIds: "useExecForm" }> = {
 		/**
 		 * Reports a shell-form CMD or ENTRYPOINT.
 		 * @param node The instruction to check.
-		 * @param customShell Whether a SHELL instruction may apply, in
-		 * which case the command may need a non-POSIX shell.
-		 * @param stageHasCmd Whether the instruction's stage sets CMD.
+		 * @param fixAllowed Whether the instruction's context permits a
+		 * fix at all. It does not when a SHELL instruction may apply, the
+		 * stage targets Windows, the instruction is an ONBUILD trigger,
+		 * or an exec-form ENTRYPOINT would start receiving a CMD.
 		 */
 		function check(
 			node: CmdInstructionNode | EntrypointInstructionNode,
-			customShell: boolean,
-			stageHasCmd: boolean,
+			fixAllowed: boolean,
 		): void {
 			const { command } = node;
 
@@ -116,25 +151,29 @@ const rule: DockerRuleDefinition<{ MessageIds: "useExecForm" }> = {
 			}
 
 			// Commands relying on shell features (variables, pipes,
-			// redirection, quoting, environment assignments, builtins)
-			// cannot be converted automatically. After a SHELL
-			// instruction the command may be written for another shell
-			// (such as PowerShell cmdlets), so it is never converted.
-			// A shell-form ENTRYPOINT ignores CMD, but an exec-form one
-			// appends it, so ENTRYPOINT is not converted when its stage
-			// sets CMD.
+			// redirection, quoting, escaped whitespace, environment
+			// assignments, builtins) cannot be converted automatically.
 			const first = command.arguments[0]?.value ?? "";
 			const canFix =
-				!customShell &&
-				!(node.type === "EntrypointInstruction" && stageHasCmd) &&
+				fixAllowed &&
 				!ASSIGNMENT.test(first) &&
 				!SHELL_BUILTINS.has(first) &&
+				!AMBIGUOUS_BUILTINS.has(first) &&
 				command.arguments.every(
-					argument =>
+					(argument, index) =>
 						SAFE_TOKEN.test(argument.value) &&
 						SAFE_TOKEN.test(
 							sourceCode.text.slice(argument.start, argument.end),
-						),
+						) &&
+						// Only plain blanks may separate words; an escaped
+						// blank (`report\ final.txt`) joins them.
+						(index === 0 ||
+							/^[ \t]+$/u.test(
+								sourceCode.text.slice(
+									command.arguments[index - 1]?.end,
+									argument.start,
+								),
+							)),
 				);
 
 			context.report({
@@ -159,36 +198,98 @@ const rule: DockerRuleDefinition<{ MessageIds: "useExecForm" }> = {
 			Dockerfile(node) {
 				// Group instructions into build stages, each starting at
 				// a FROM instruction.
-				const stages: InstructionNode[][] = [[]];
+				const stages: StageInfo[] = [
+					{
+						instructions: [],
+						name: null,
+						base: null,
+						windows: false,
+						hasCmd: false,
+						hasEntrypoint: false,
+					},
+				];
 
 				for (const instruction of node.body) {
 					if (instruction.type === "FromInstruction") {
-						stages.push([]);
+						const platform = instruction.flags.find(
+							flag => flag.name === "platform",
+						);
+						const base = instruction.image?.name ?? null;
+
+						stages.push({
+							instructions: [],
+							name: instruction.alias?.name.toLowerCase() ?? null,
+							base: base?.toLowerCase() ?? null,
+							windows:
+								(base !== null && WINDOWS_IMAGE.test(base)) ||
+								WINDOWS_PLATFORM.test(platform?.value ?? ""),
+							hasCmd: false,
+							hasEntrypoint: false,
+						});
 					}
 
-					(stages.at(-1) as InstructionNode[]).push(instruction);
+					const stage = stages.at(-1) as StageInfo;
+
+					stage.instructions.push(instruction);
+					stage.hasCmd ||= instruction.type === "CmdInstruction";
+					stage.hasEntrypoint ||=
+						instruction.type === "EntrypointInstruction";
+				}
+
+				/**
+				 * Returns whether a stage's ENTRYPOINT would receive a CMD,
+				 * either from the stage itself or from a later stage that
+				 * builds on it without replacing the ENTRYPOINT.
+				 */
+				function receivesCmd(index: number): boolean {
+					const stage = stages[index] as StageInfo;
+
+					if (stage.hasCmd) {
+						return true;
+					}
+
+					return stages.some(
+						(child, childIndex) =>
+							childIndex > index &&
+							stage.name !== null &&
+							child.base === stage.name &&
+							!child.hasEntrypoint &&
+							receivesCmd(childIndex),
+					);
 				}
 
 				// A stage can inherit SHELL from an earlier stage, so any
-				// preceding SHELL instruction counts.
+				// preceding SHELL instruction counts. Windows images use
+				// cmd.exe, so the POSIX fix checks do not apply to them.
 				let customShell = false;
 
-				for (const stage of stages) {
-					const stageHasCmd = stage.some(
-						instruction => instruction.type === "CmdInstruction",
-					);
-
-					for (const instruction of stage) {
+				stages.forEach((stage, index) => {
+					for (const instruction of stage.instructions) {
 						if (instruction.type === "ShellInstruction") {
 							customShell = true;
+						} else if (instruction.type === "CmdInstruction") {
+							check(instruction, !customShell && !stage.windows);
 						} else if (
-							instruction.type === "CmdInstruction" ||
 							instruction.type === "EntrypointInstruction"
 						) {
-							check(instruction, customShell, stageHasCmd);
+							check(
+								instruction,
+								!customShell &&
+									!stage.windows &&
+									!receivesCmd(index),
+							);
+						} else if (
+							instruction.type === "OnbuildInstruction" &&
+							(instruction.trigger?.type === "CmdInstruction" ||
+								instruction.trigger?.type ===
+									"EntrypointInstruction")
+						) {
+							// The downstream build decides whether the
+							// conversion is safe, so report without a fix.
+							check(instruction.trigger, false);
 						}
 					}
-				}
+				});
 			},
 		};
 	},
