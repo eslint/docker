@@ -37,6 +37,7 @@ describe("plugin", () => {
 			"no-maintainer",
 			"no-sudo",
 			"prefer-copy-over-add",
+			"prefer-exec-form",
 		]);
 	});
 
