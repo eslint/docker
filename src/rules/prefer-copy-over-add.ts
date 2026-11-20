@@ -15,7 +15,8 @@ import type { DockerRuleDefinition } from "../types.js";
 //------------------------------------------------------------------------------
 
 const URL_SOURCE = /^[a-z][a-z0-9+.-]*:\/\//iu;
-const GIT_SOURCE = /^git@/iu;
+/** An SCP-style Git reference such as `deploy@example.org:team/repo.git`. */
+const GIT_SOURCE = /^[\w.-]+@[\w.-]+:/u;
 const ARCHIVE_SOURCE = /\.(?:tar|tgz|txz|tbz2?|tar\.(?:gz|bz2|xz|zst))$/iu;
 
 /**
@@ -70,7 +71,9 @@ const rule: DockerRuleDefinition<{
 				if (
 					node.sources.some(source => {
 						const { value } = source;
-						const path = value.replace(/\/+$/u, "");
+						// `archive.tar.gz/.` and `archive.tar.gz/` name the
+						// same file as `archive.tar.gz`.
+						const path = value.replace(/(?:\/+\.?)+$/u, "");
 
 						return (
 							URL_SOURCE.test(value) ||
@@ -89,20 +92,30 @@ const rule: DockerRuleDefinition<{
 				// Docker detects archives by their contents, not their
 				// names, so a local source without an archive extension
 				// may still be extracted by ADD. The replacement is
-				// therefore offered as a suggestion rather than a fix.
+				// therefore offered as a suggestion rather than a fix. A
+				// keyword split by a line continuation is not contiguous,
+				// so it gets no suggestion.
+				const keywordEnd = node.start + node.keyword.length;
+				const keywordIsContiguous =
+					sourceCode.text
+						.slice(node.start, keywordEnd)
+						.toUpperCase() === node.keyword;
+
 				context.report({
 					node,
 					messageId: "useCopy",
-					suggest: [
-						{
-							messageId: "replaceWithCopy",
-							fix: fixer =>
-								fixer.replaceTextRange(
-									[node.start, node.start + 3],
-									"COPY",
-								),
-						},
-					],
+					suggest: keywordIsContiguous
+						? [
+								{
+									messageId: "replaceWithCopy",
+									fix: fixer =>
+										fixer.replaceTextRange(
+											[node.start, keywordEnd],
+											"COPY",
+										),
+								},
+							]
+						: [],
 				});
 			},
 		};
