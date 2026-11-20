@@ -23,8 +23,13 @@ means the same thing.
 
 This rule warns when a `WORKDIR` path is not absolute. Unix paths starting
 with `/`, Windows paths starting with a drive letter (`C:/`), and paths
-starting with a variable reference (`$`, `${...}`, or `%...%`) are
-accepted; variable values cannot be checked statically.
+starting with a variable reference (`$NAME` or `${...}`) are accepted;
+variable values cannot be checked statically. Quotes and Dockerfile escapes
+are removed before the check. Docker does not expand `%NAME%` in `WORKDIR`,
+so such paths are reported, as is an empty path (`WORKDIR ""`), which
+keeps the previous working directory. A drive letter is not accepted in a
+stage that explicitly targets Linux (`FROM --platform=linux/...`), where it
+is an ordinary relative path component.
 
 Examples of **incorrect** code for this rule:
 
