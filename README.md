@@ -23,7 +23,7 @@ Requires Node.js `^20.19.0 || ^22.13.0 || >=24`. Tested with ESLint v10.
 
 ## Syntax tree
 
-The tree format is documented in [docs/syntax-tree.md](docs/syntax-tree.md).
+The tree format is documented in [docs/syntax-tree.md](https://github.com/eslint/docker/blob/main/docs/syntax-tree.md).
 Nodes carry `start`/`end` character offsets instead of `range`/`loc`
 properties; use `sourceCode.getRange(node)` and `sourceCode.getLoc(node)`.
 

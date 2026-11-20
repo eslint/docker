@@ -23,8 +23,10 @@ export interface DockerNodeBase {
 
 /**
  * Properties shared by every instruction node. `keyword` is always the
- * canonical uppercase form; the keyword as written occupies
- * `[start, start + keyword.length)` in the source text.
+ * canonical uppercase form. The keyword as written usually occupies
+ * `[start, start + keyword.length)` in the source text, but a line
+ * continuation inside the keyword (`R\` followed by `UN`) makes it longer;
+ * compare that slice against `keyword` before editing it.
  */
 export interface InstructionBase extends DockerNodeBase {
 	keyword: string;
@@ -65,8 +67,9 @@ export interface ParserDirectiveNode extends DockerNodeBase {
 
 /**
  * A whitespace-delimited token. For arguments derived from a JSON (exec
- * form) array, `value` is the parsed string content while the offsets
- * still include the enclosing double quotes.
+ * form) array, `value` is the raw source text between the double quotes
+ * (JSON escapes such as `b` are not decoded) while the offsets still
+ * include the enclosing double quotes.
  */
 export interface ArgumentNode extends DockerNodeBase {
 	type: "Argument";
@@ -126,7 +129,7 @@ export interface ShellFormNode extends DockerNodeBase {
 
 /**
  * An exec-form (JSON array) command (`CMD ["node", "app.js"]`). Each
- * element's `value` is the parsed string content.
+ * element's `value` is the raw text between the quotes.
  */
 export interface ExecFormNode extends DockerNodeBase {
 	type: "ExecForm";

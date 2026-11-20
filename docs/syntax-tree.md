@@ -65,8 +65,10 @@ instruction is part of its arguments.
 ## Instructions
 
 Every instruction node carries its canonical uppercase `keyword`. The
-keyword as written (which may be lowercase) occupies
-`[start, start + keyword.length)` in the source text.
+keyword as written (which may be lowercase) usually occupies
+`[start, start + keyword.length)` in the source text. A line continuation
+inside the keyword makes it longer, so compare that slice against `keyword`
+before editing it.
 
 ```ts
 interface InstructionBase extends DockerNodeBase {

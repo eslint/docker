@@ -89,10 +89,22 @@ function escapeRegExp(value: string): string {
 export function parseDocker(text: string): DockerParseResult {
 	const dockerfile = DockerfileParser.parse(text);
 	const offsetAt = createPositionConverter(text);
+	const escapeCharacter = dockerfile.getEscapeCharacter();
+
+	// A line continuation, together with any full-line comments and empty
+	// lines that follow it: Docker removes those before it processes the
+	// instruction.
 	const continuationPattern = new RegExp(
-		`${escapeRegExp(dockerfile.getEscapeCharacter())}[ \\t]*\\r?\\n`,
+		`${escapeRegExp(escapeCharacter)}[ \\t]*\\r?\\n(?:[ \\t]*(?:#[^\\n]*)?\\r?\\n)*`,
 		"gu",
 	);
+
+	/**
+	 * Returns the source text between two offsets with line continuations
+	 * and the comment lines inside them removed.
+	 */
+	const logicalText = (start: number, end: number): string =>
+		text.slice(start, end).replace(continuationPattern, "");
 
 	const spanOf = (range: Range): { start: number; end: number } => ({
 		start: offsetAt(range.start),
@@ -174,10 +186,45 @@ export function parseDocker(text: string): DockerParseResult {
 		};
 	}
 
+	/**
+	 * Determines whether an instruction uses the JSON (exec) form. Docker
+	 * treats the arguments as JSON only when they form a complete JSON array
+	 * of strings; anything else, such as `RUN [ -f /app ] && make`, is
+	 * shell form even though it starts with a bracket.
+	 */
+	function isJsonForm(instruction: JSONInstruction): boolean {
+		const openingBracket = instruction.getOpeningBracket();
+		const closingBracket = instruction.getClosingBracket();
+
+		if (!openingBracket || !closingBracket) {
+			return false;
+		}
+
+		const start = offsetAt(openingBracket.getRange().start);
+		const end = offsetAt(closingBracket.getRange().end);
+		const argsRange = instruction.getArgumentsRange();
+
+		// The closing bracket must end the arguments.
+		if (argsRange && offsetAt(argsRange.end) !== end) {
+			return false;
+		}
+
+		try {
+			const value: unknown = JSON.parse(logicalText(start, end));
+
+			return (
+				Array.isArray(value) &&
+				value.every(element => typeof element === "string")
+			);
+		} catch {
+			return false;
+		}
+	}
+
 	function convertCommandBody(
 		instruction: JSONInstruction,
 	): CommandBodyNode | null {
-		if (instruction.getOpeningBracket()) {
+		if (isJsonForm(instruction)) {
 			return convertExecForm(instruction);
 		}
 
@@ -203,12 +250,45 @@ export function parseDocker(text: string): DockerParseResult {
 
 		return {
 			type: "Argument",
-			value: text
-				.slice(first.start, last.end)
-				.replace(continuationPattern, ""),
+			value: logicalText(first.start, last.end),
 			start: first.start,
 			end: last.end,
 		};
+	}
+
+	/**
+	 * Returns the arguments that belong to the instruction header. When
+	 * the instruction uses a heredoc (`COPY <<EOF /app/file`), the upstream
+	 * argument list also contains the heredoc body and terminator, which
+	 * are not sources or destinations.
+	 */
+	function headerArguments(
+		args: ArgumentNode[],
+		instructionStart: number,
+	): ArgumentNode[] {
+		if (!args.some(argument => argument.value.startsWith("<<"))) {
+			return args;
+		}
+
+		let headerEnd = instructionStart;
+
+		for (;;) {
+			const newline = text.indexOf("\n", headerEnd);
+
+			if (newline === -1) {
+				return args;
+			}
+
+			headerEnd = newline + 1;
+
+			const line = text.slice(instructionStart, newline).trimEnd();
+
+			if (!line.endsWith(escapeCharacter)) {
+				break;
+			}
+		}
+
+		return args.filter(argument => argument.start < headerEnd);
 	}
 
 	function convertPairs(
@@ -249,6 +329,28 @@ export function parseDocker(text: string): DockerParseResult {
 					? value
 					: value.replace(continuationPattern, "")) as T;
 
+			let name = joinLines(
+				registry === null ? imageName : `${registry}/${imageName}`,
+			);
+			let tag = joinLines(instruction.getImageTag());
+			const digest = joinLines(instruction.getImageDigest());
+
+			// With a digest present, dockerfile-ast mistakes a registry
+			// port for the tag separator and leaves the real tag in the
+			// name (`localhost:5000/app:1.2@sha256:...`). A tag separator
+			// can only follow the last path separator.
+			if (digest !== null && tag === null) {
+				const separator = name.lastIndexOf(":");
+
+				if (
+					separator > name.lastIndexOf("/") &&
+					!name.slice(separator).includes("}")
+				) {
+					tag = name.slice(separator + 1);
+					name = name.slice(0, separator);
+				}
+			}
+
 			return {
 				type: "FromInstruction",
 				keyword: "FROM",
@@ -256,13 +358,9 @@ export function parseDocker(text: string): DockerParseResult {
 				image: imageRange
 					? {
 							type: "ImageReference",
-							name: joinLines(
-								registry === null
-									? imageName
-									: `${registry}/${imageName}`,
-							),
-							tag: joinLines(instruction.getImageTag()),
-							digest: joinLines(instruction.getImageDigest()),
+							name,
+							tag,
+							digest,
 							...spanOf(imageRange),
 						}
 					: null,
@@ -302,10 +400,15 @@ export function parseDocker(text: string): DockerParseResult {
 		if (instruction instanceof Onbuild) {
 			const trigger = instruction.getTriggerInstruction();
 
+			// Docker does not allow ONBUILD as a trigger. Converting a nested
+			// ONBUILD would recurse once per repetition.
 			return {
 				type: "OnbuildInstruction",
 				keyword: "ONBUILD",
-				trigger: trigger ? convertInstruction(trigger) : null,
+				trigger:
+					trigger && !(trigger instanceof Onbuild)
+						? convertInstruction(trigger)
+						: null,
 				...span,
 			};
 		}
@@ -356,7 +459,7 @@ export function parseDocker(text: string): DockerParseResult {
 					return {
 						type: "ShellInstruction",
 						keyword,
-						command: instruction.getOpeningBracket()
+						command: isJsonForm(instruction)
 							? convertExecForm(instruction)
 							: null,
 						...span,
@@ -364,9 +467,12 @@ export function parseDocker(text: string): DockerParseResult {
 				}
 				case "COPY":
 				case "ADD": {
-					const args = instruction.getOpeningBracket()
+					const args = isJsonForm(instruction)
 						? convertJsonStrings(instruction)
-						: convertArguments(instruction);
+						: headerArguments(
+								convertArguments(instruction),
+								span.start,
+							);
 					const shared = {
 						keyword,
 						flags: convertFlags(instruction),
@@ -383,7 +489,7 @@ export function parseDocker(text: string): DockerParseResult {
 					return {
 						type: "VolumeInstruction",
 						keyword,
-						paths: instruction.getOpeningBracket()
+						paths: isJsonForm(instruction)
 							? convertJsonStrings(instruction)
 							: convertArguments(instruction),
 						...span,
