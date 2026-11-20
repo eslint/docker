@@ -63,9 +63,10 @@ export default defineConfig([
 
 Each rule mirrors a well-known hadolint check or Docker best practice.
 
-| Rule                                                                             | hadolint | Description                              | Fixable | Recommended |
-| -------------------------------------------------------------------------------- | -------- | ---------------------------------------- | ------- | ----------- |
-| [`consistent-instruction-casing`](./docs/rules/consistent-instruction-casing.md) | —        | Instruction keywords should be uppercase | ✅      | error       |
+| Rule                                                                             | hadolint | Description                                            | Fixable | Recommended |
+| -------------------------------------------------------------------------------- | -------- | ------------------------------------------------------ | ------- | ----------- |
+| [`consistent-instruction-casing`](./docs/rules/consistent-instruction-casing.md) | —        | Instruction keywords should be uppercase               | ✅      | error       |
+| [`no-apt-get-upgrade`](./docs/rules/no-apt-get-upgrade.md)                       | DL3005   | Don't `apt-get upgrade`; update the base image instead |         | error       |
 
 ## Configuration comments
 
