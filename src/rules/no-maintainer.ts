@@ -32,7 +32,21 @@ const rule: DockerRuleDefinition<{ MessageIds: "useLabel" }> = {
 	create(context) {
 		const { sourceCode } = context;
 
+		// Whether the current stage already sets a `maintainer` label,
+		// which the fix would overwrite.
+		let stageHasMaintainerLabel = false;
+
 		return {
+			FromInstruction() {
+				stageHasMaintainerLabel = false;
+			},
+
+			LabelInstruction(node) {
+				if (node.pairs.some(pair => pair.key.value === "maintainer")) {
+					stageHasMaintainerLabel = true;
+				}
+			},
+
 			MaintainerInstruction(node) {
 				const first = node.arguments[0];
 				const last = node.arguments.at(-1) as ArgumentNode | undefined;
@@ -46,8 +60,15 @@ const rule: DockerRuleDefinition<{ MessageIds: "useLabel" }> = {
 				// literally, but LABEL expands variables even inside
 				// double quotes and decodes escapes. A `# escape=`
 				// directive can make a backtick the escape character.
+				// Docker also consumes a leading `--` delimiter and trims
+				// boundary whitespace (including non-ASCII spaces), which
+				// would become label data inside the quotes.
 				const canFix =
-					argsText !== "" && !/[\n\r"\\$`]/u.test(argsText);
+					argsText !== "" &&
+					!/[\n\r"\\$`]/u.test(argsText) &&
+					argsText === argsText.trim() &&
+					!/^--(?:\s|$)/u.test(argsText) &&
+					!stageHasMaintainerLabel;
 
 				context.report({
 					node,

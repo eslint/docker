@@ -19,7 +19,10 @@ express any metadata, so there is no reason to keep using `MAINTAINER`.
 
 This rule warns on every `MAINTAINER` instruction. When the value is a
 simple single-line string without quotes or backslashes, the rule fixes
-the instruction by rewriting it as a `maintainer` `LABEL`.
+the instruction by rewriting it as a `maintainer` `LABEL`. The fix is
+skipped when the value starts with a `--` delimiter or has leading or
+trailing whitespace, or when the stage already sets a `maintainer` label
+that the fix would overwrite.
 
 Examples of **incorrect** code for this rule:
 
