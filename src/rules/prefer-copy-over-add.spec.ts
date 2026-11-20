@@ -22,6 +22,7 @@ ruleTester.run("prefer-copy-over-add", rule as never, {
 		// URLs require ADD.
 		"ADD https://example.com/file.tar.gz /tmp/",
 		"ADD git@github.com:user/repo.git /src/",
+		"ADD deploy@code.example.org:team/repo.git /src/",
 		// Archives are auto-extracted by ADD.
 		"ADD rootfs.tar.gz /",
 		"ADD layer.tar /",
@@ -32,6 +33,7 @@ ruleTester.run("prefer-copy-over-add", rule as never, {
 		"ADD --unpack=false file.txt /app/",
 		// Trailing slashes are ignored when resolving sources.
 		"ADD rootfs.tar.gz/ /",
+		"ADD rootfs.tar.gz/. /",
 		// Variable sources cannot be checked.
 		"ADD $ARTIFACT /app/",
 		// Wildcards may match archives.
@@ -45,6 +47,12 @@ ruleTester.run("prefer-copy-over-add", rule as never, {
 		"ADD",
 	],
 	invalid: [
+		{
+			// A keyword split by a line continuation gets no suggestion.
+			code: "AD\\\nD src/ /app/",
+			output: null,
+			errors: [{ messageId: "useCopy", suggestions: [] }],
+		},
 		{
 			code: "ADD src/ /app/",
 			output: null,
