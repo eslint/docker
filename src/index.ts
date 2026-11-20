@@ -14,6 +14,7 @@ import noAptGetUpgrade from "./rules/no-apt-get-upgrade.js";
 import noCdInRun from "./rules/no-cd-in-run.js";
 import noDuplicateInstructions from "./rules/no-duplicate-instructions.js";
 import noMaintainer from "./rules/no-maintainer.js";
+import noSudo from "./rules/no-sudo.js";
 
 const rules = {
 	"consistent-instruction-casing": consistentInstructionCasing,
@@ -21,6 +22,7 @@ const rules = {
 	"no-cd-in-run": noCdInRun,
 	"no-duplicate-instructions": noDuplicateInstructions,
 	"no-maintainer": noMaintainer,
+	"no-sudo": noSudo,
 };
 
 const plugin = {
@@ -50,6 +52,7 @@ const plugin = {
 				"docker/no-cd-in-run": "error",
 				"docker/no-duplicate-instructions": "error",
 				"docker/no-maintainer": "error",
+				"docker/no-sudo": "error",
 			} as const,
 		},
 	},
