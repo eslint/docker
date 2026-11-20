@@ -9,6 +9,11 @@
 // Plugin
 //------------------------------------------------------------------------------
 import { DockerFileLanguage } from "./languages/docker-language.js";
+import consistentInstructionCasing from "./rules/consistent-instruction-casing.js";
+
+const rules = {
+	"consistent-instruction-casing": consistentInstructionCasing,
+};
 
 const plugin = {
 	meta: {
@@ -19,6 +24,7 @@ const plugin = {
 	languages: {
 		dockerfile: new DockerFileLanguage(),
 	},
+	rules,
 	configs: {
 		recommended: {
 			name: "docker/recommended",
@@ -30,7 +36,9 @@ const plugin = {
 			],
 			language: "docker/dockerfile",
 			plugins: {},
-			rules: {},
+			rules: {
+				"docker/consistent-instruction-casing": "error",
+			} as const,
 		},
 	},
 };
