@@ -27,15 +27,23 @@ ruleTester.run("no-cd-in-run", rule as never, {
 	],
 	invalid: [
 		{
-			// A lone `cd` converts directly to WORKDIR.
+			// A lone `cd` can be replaced with WORKDIR, but WORKDIR also
+			// affects later instructions, so it is only a suggestion.
 			code: "RUN cd /app",
-			output: "WORKDIR /app",
+			output: null,
 			errors: [
 				{
 					messageId: "useWorkdir",
 					line: 1,
 					column: 5,
 					endColumn: 12,
+					suggestions: [
+						{
+							messageId: "replaceWithWorkdir",
+							data: { directory: "/app" },
+							output: "WORKDIR /app",
+						},
+					],
 				},
 			],
 		},
@@ -50,6 +58,12 @@ ruleTester.run("no-cd-in-run", rule as never, {
 					endColumn: 12,
 				},
 			],
+		},
+		{
+			// A bracket that does not start a JSON array is shell form.
+			code: "RUN [ -d /app ] && cd /app",
+			output: null,
+			errors: [{ messageId: "useWorkdir", column: 20 }],
 		},
 		{
 			code: "RUN make && cd /out",
