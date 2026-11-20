@@ -30,19 +30,30 @@ entirely.
 This rule warns when a `CMD` or `ENTRYPOINT` instruction uses the shell
 form. When the command is a simple sequence of words with no shell
 features (variables, quoting, pipes, redirection, leading environment
-assignments, or shell builtins such as `exec`), the rule fixes it by
-rewriting the command as a JSON array. Commands that rely on shell
-features are reported without a fix, since converting them requires
-deciding how to handle the shell.
+assignments, escaped whitespace, or shell builtins such as `exec`), the
+rule fixes it by rewriting the command as a JSON array. Commands that rely
+on shell features are reported without a fix, since converting them
+requires deciding how to handle the shell. Commands that start with a
+builtin whose external program behaves differently, such as `echo` or
+`printf`, are also reported without a fix; use a full path such as
+`/usr/bin/echo` to choose the program explicitly.
 
 The rule also reports without a fix when:
 
 - a `SHELL` instruction appears earlier in the file, because the command
   may be written for that shell (for example, PowerShell cmdlets) rather
-  than being an executable, or
-- the instruction is an `ENTRYPOINT` in a stage that sets `CMD`, because
-  an exec-form `ENTRYPOINT` receives `CMD` as arguments while the
-  shell form ignores it.
+  than being an executable,
+- the stage targets Windows (a `--platform=windows/...` flag or a Windows
+  base image), because the default shell there is `cmd.exe`,
+- the instruction is an `ENTRYPOINT` in a stage that sets `CMD`, or that
+  a later stage builds on and sets `CMD` without replacing the
+  `ENTRYPOINT`, because an exec-form `ENTRYPOINT` receives `CMD` as
+  arguments while the shell form ignores it, or
+- the instruction is an `ONBUILD` trigger, because the downstream build
+  determines whether the conversion is safe.
+
+The rule cannot see `SHELL` instructions in external base images. If a
+base image changes the default shell, disable the fix for that file.
 
 `RUN` instructions are not checked; the shell form is the normal way to
 write them.

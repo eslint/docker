@@ -80,8 +80,7 @@ rule offers an editor suggestion instead.
 | [`prefer-exec-form`](./docs/rules/prefer-exec-form.md)                           | DL3025        | Use the exec (JSON array) form for `CMD` and `ENTRYPOINT`             | ✅      | warn        |
 
 Fixable rules only autofix when the rewrite is unambiguous — for example,
-`no-cd-in-run` only converts a `RUN` that consists of a single `cd` command,
-and `prefer-exec-form` leaves commands that rely on shell features alone.
+`prefer-exec-form` leaves commands that rely on shell features alone.
 
 ## Configuration comments
 
