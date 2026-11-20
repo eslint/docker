@@ -27,7 +27,9 @@ const ABSOLUTE_LITERAL_PATH = /^\/[\w./@+-]*$/u;
 // Rule Definition
 //------------------------------------------------------------------------------
 
-const rule: DockerRuleDefinition<{ MessageIds: "useWorkdir" }> = {
+const rule: DockerRuleDefinition<{
+	MessageIds: "useWorkdir" | "replaceWithWorkdir";
+}> = {
 	meta: {
 		type: "suggestion",
 		docs: {
@@ -36,11 +38,13 @@ const rule: DockerRuleDefinition<{ MessageIds: "useWorkdir" }> = {
 			recommended: true,
 			url: "https://github.com/eslint/docker/blob/main/docs/rules/no-cd-in-run.md",
 		},
-		fixable: "code",
+		hasSuggestions: true,
 		schema: [],
 		messages: {
 			useWorkdir:
 				"Use WORKDIR to switch directories instead of `cd` in RUN.",
+			replaceWithWorkdir:
+				"Replace this RUN instruction with `WORKDIR {{directory}}`.",
 		},
 	},
 
@@ -64,7 +68,10 @@ const rule: DockerRuleDefinition<{ MessageIds: "useWorkdir" }> = {
 					}
 
 					// `RUN cd /dir` on its own does nothing except hide a
-					// missing WORKDIR, so it can be fixed directly. Only
+					// missing WORKDIR, so WORKDIR can be suggested. It is
+					// not an automatic fix because WORKDIR also changes the
+					// directory of later instructions and creates the
+					// directory if it is missing. Only
 					// a plain `cd` with an absolute literal path
 					// qualifies: attached operators, subshells, quoting,
 					// and expansions (such as `~` or `$HOME`) would change
@@ -94,12 +101,18 @@ const rule: DockerRuleDefinition<{ MessageIds: "useWorkdir" }> = {
 							spanOfTokens(command.tokens) as DockerNode,
 						),
 						messageId: "useWorkdir",
-						fix: canFix
-							? fixer =>
-									fixer.replaceTextRange(
-										[node.start, node.end],
-										`WORKDIR ${directory}`,
-									)
+						suggest: canFix
+							? [
+									{
+										messageId: "replaceWithWorkdir",
+										data: { directory },
+										fix: fixer =>
+											fixer.replaceTextRange(
+												[node.start, node.end],
+												`WORKDIR ${directory}`,
+											),
+									},
+								]
 							: undefined,
 					});
 				}

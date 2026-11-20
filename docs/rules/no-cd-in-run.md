@@ -24,11 +24,14 @@ This rule warns when a shell-form `RUN` instruction uses `cd` as a command,
 including inside compound commands joined by `&&`, `||`, `;`, or `|`.
 
 When a `RUN` instruction consists of nothing but a single `cd` to an
-absolute path (which does nothing at all), the rule fixes it by replacing
-the instruction with an equivalent `WORKDIR`. Relative paths, `cd -`, and
-`cd` options are reported without a fix because `cd` resolves them
-differently from `WORKDIR`. Compound commands are reported without a fix because
-the correct rewrite depends on the surrounding commands.
+absolute path (which does nothing at all), the rule suggests replacing the
+instruction with `WORKDIR`. This is a suggestion rather than an automatic
+fix because `WORKDIR` also changes the directory of every later
+instruction and creates the directory if it does not exist, so review the
+rest of the stage before applying it. Relative paths, `cd -`, and `cd`
+options are reported without a suggestion because `cd` resolves them
+differently from `WORKDIR`. Compound commands are reported without a
+suggestion because the correct rewrite depends on the surrounding commands.
 
 Examples of **incorrect** code for this rule:
 
