@@ -58,12 +58,18 @@ describe("autofix", () => {
 		});
 	});
 
-	it("should convert a lone RUN cd to WORKDIR", () => {
+	it("should suggest, not autofix, converting a lone RUN cd to WORKDIR", () => {
 		const result = fix("RUN cd /app\n", {
 			"docker/no-cd-in-run": "error",
 		});
 
-		expect(result.output).toBe("WORKDIR /app\n");
+		expect(result.fixed).toBe(false);
+		expect(result.output).toBe("RUN cd /app\n");
+		expect(result.messages).toHaveLength(1);
+		expect(result.messages[0]?.suggestions?.[0]?.fix).toEqual({
+			range: [0, 11],
+			text: "WORKDIR /app",
+		});
 	});
 
 	it("should convert shell form CMD to exec form", () => {
