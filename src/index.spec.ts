@@ -38,6 +38,7 @@ describe("plugin", () => {
 			"no-sudo",
 			"prefer-copy-over-add",
 			"prefer-exec-form",
+			"require-absolute-workdir",
 		]);
 	});
 
