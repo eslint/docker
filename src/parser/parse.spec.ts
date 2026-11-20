@@ -151,6 +151,16 @@ describe("parseDocker", () => {
 				],
 				["FROM ghcr.io/org/app\n", "ghcr.io/org/app", null],
 				["FROM org/app:1\n", "org/app", "1"],
+				[
+					"FROM localhost:5000/team/app:1.2@sha256:abc\n",
+					"localhost:5000/team/app",
+					"1.2",
+				],
+				[
+					"FROM localhost:5000/team/app@sha256:abc\n",
+					"localhost:5000/team/app",
+					null,
+				],
 			] as const) {
 				const from = parseDocker(text).ast
 					.body[0] as FromInstructionNode;
@@ -249,6 +259,40 @@ describe("parseDocker", () => {
 			expect(command.elements[0]).toMatchObject({ start: 5, end: 16 });
 		});
 
+		it("should keep JSON escapes in exec form element values", () => {
+			const text = 'CMD ["a\\u0062"]\n';
+			const cmd = parseDocker(text).ast.body[0] as CmdInstructionNode;
+			const command = cmd.command as ExecFormNode;
+
+			expect(command.elements[0]).toMatchObject({
+				value: "a\\u0062",
+				start: 5,
+				end: 14,
+			});
+		});
+
+		it("should parse bracket-leading commands that are not JSON as shell form", () => {
+			for (const text of [
+				"RUN [ -f /app/config ] && echo ready\n",
+				'RUN ["echo", "unterminated"\n',
+				'RUN ["echo", 1]\n',
+				'RUN ["echo"] && true\n',
+			]) {
+				const run = parseDocker(text).ast.body[0] as RunInstructionNode;
+
+				expect(run.command?.type).toBe("ShellForm");
+			}
+
+			const run = parseDocker("RUN [ -f /app/config ] && echo ready\n")
+				.ast.body[0] as RunInstructionNode;
+
+			expect(
+				(run.command as ShellFormNode).arguments.map(
+					argument => argument.value,
+				),
+			).toEqual(["[", "-f", "/app/config", "]", "&&", "echo", "ready"]);
+		});
+
 		it("should have a null command for empty RUN", () => {
 			const { ast } = parseDocker("RUN\n");
 			const run = ast.body[0] as RunInstructionNode;
@@ -312,6 +356,25 @@ describe("parseDocker", () => {
 				"src dir",
 			]);
 			expect(add.destination?.value).toBe("/app/");
+		});
+
+		it("should treat bracket-leading paths that are not JSON as plain form", () => {
+			const copy = parseDocker("COPY [ab].txt /dest/\n").ast
+				.body[0] as CopyInstructionNode;
+
+			expect(copy.sources.map(source => source.value)).toEqual([
+				"[ab].txt",
+			]);
+			expect(copy.destination?.value).toBe("/dest/");
+		});
+
+		it("should take sources and destination from the heredoc header", () => {
+			const text = "COPY <<EOF /app/message.txt\nhello\nEOF\n";
+			const copy = parseDocker(text).ast.body[0] as CopyInstructionNode;
+
+			expect(copy.sources.map(source => source.value)).toEqual(["<<EOF"]);
+			expect(copy.destination?.value).toBe("/app/message.txt");
+			expect(copy.end).toBe(text.length - 1);
 		});
 
 		it("should handle a missing destination", () => {
@@ -409,6 +472,16 @@ describe("parseDocker", () => {
 			expect(path?.value).toBe("/app/myproject");
 		});
 
+		it("should drop comment lines inside WORKDIR continuations", () => {
+			const text = "WORKDIR /app/\\\n# note\nsub\n";
+			const path = (
+				parseDocker(text).ast.body[0] as WorkdirInstructionNode
+			).path;
+
+			expect(path?.value).toBe("/app/sub");
+			expect(path?.end).toBe(text.length - 1);
+		});
+
 		it("should handle missing arguments", () => {
 			const { ast } = parseDocker("WORKDIR\nUSER\n");
 
@@ -484,6 +557,14 @@ describe("parseDocker", () => {
 			// The trigger starts at its own keyword.
 			expect(trigger.start).toBe(8);
 			expect(trigger.destination?.value).toBe("/app");
+		});
+
+		it("should not convert a nested ONBUILD trigger", () => {
+			const text = `${"ONBUILD ".repeat(5000)}RUN make\n`;
+			const onbuild = parseDocker(text).ast
+				.body[0] as OnbuildInstructionNode;
+
+			expect(onbuild.trigger).toBeNull();
 		});
 
 		it("should handle a missing trigger", () => {
