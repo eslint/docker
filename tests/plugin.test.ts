@@ -95,8 +95,11 @@ describe("plugin integration", () => {
 		);
 
 		expect(messages.filter(message => message.fatal)).toEqual([]);
-		// Only the deprecated MAINTAINER keyword is a real problem here.
+		// Docker runs an incomplete JSON array as a shell command, so the
+		// CMD and ENTRYPOINT lines are shell form.
 		expect(messages.map(message => message.ruleId)).toEqual([
+			"docker/prefer-exec-form",
+			"docker/prefer-exec-form",
 			"docker/no-maintainer",
 		]);
 	});
