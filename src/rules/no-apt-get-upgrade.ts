@@ -47,20 +47,47 @@ const VALUE_SHORT_OPTIONS = new Set(["o", "c", "t", "a", "S"]);
  * value. Short-option clusters such as `-qo` are read one letter at a
  * time, the way APT parses them.
  */
-function takesNextWord(word: string): boolean {
+function takesNextWord(word: string, nextWord: string | undefined): boolean {
 	if (word.startsWith("--")) {
 		return VALUE_LONG_OPTIONS.has(word);
 	}
 
 	for (let i = 1; i < word.length; i++) {
-		if (VALUE_SHORT_OPTIONS.has(word[i] as string)) {
+		const letter = word[i] as string;
+
+		// `-a` is `--host-architecture` (with a value) for commands such as
+		// `build-dep`, but `--all-versions` (without one) for `apt list`.
+		if (
+			letter === "a" &&
+			nextWord !== undefined &&
+			ALL_VERSIONS_SUBCOMMANDS.has(nextWord)
+		) {
+			continue;
+		}
+
+		if (VALUE_SHORT_OPTIONS.has(letter)) {
 			// The rest of the word, if any, is the option's value.
 			return i === word.length - 1;
 		}
 	}
 
-	return false;
+	// A quiet level may follow `-q` as a separate word (`-q 2`).
+	return (
+		word.endsWith("q") && nextWord !== undefined && /^\d+$/u.test(nextWord)
+	);
 }
+
+/**
+ * APT subcommands for which `-a` means `--all-versions`, so it does not
+ * take the following word as its value.
+ */
+const ALL_VERSIONS_SUBCOMMANDS = new Set([
+	"list",
+	"show",
+	"showsrc",
+	"policy",
+	"madison",
+]);
 
 /**
  * Returns the APT subcommand: the first word that is neither an option
@@ -74,13 +101,62 @@ function findSubcommand(words: string[]): string | undefined {
 			return word;
 		}
 
-		if (takesNextWord(word)) {
+		if (takesNextWord(word, words[i + 1])) {
 			i++;
 		}
 	}
 
 	return undefined;
 }
+
+/**
+ * Joins token values into shell words: tokens inside an open quote are
+ * merged with the following tokens, and quote characters are removed, so
+ * `'upgrade'` becomes `upgrade` and `-o 'a b'` gives one value word.
+ */
+function toShellWords(values: string[]): string[] {
+	const words: string[] = [];
+	let quote: string | null = null;
+	let pending: string | null = null;
+
+	for (const value of values) {
+		let word = "";
+
+		for (let i = 0; i < value.length; i++) {
+			const character = value[i] as string;
+
+			if (character === "\\" && quote !== "'" && i + 1 < value.length) {
+				i++;
+				word += value[i];
+			} else if (
+				quote === null &&
+				(character === '"' || character === "'")
+			) {
+				quote = character;
+			} else if (character === quote) {
+				quote = null;
+			} else {
+				word += character;
+			}
+		}
+
+		pending = pending === null ? word : `${pending} ${word}`;
+
+		if (quote === null) {
+			words.push(pending);
+			pending = null;
+		}
+	}
+
+	if (pending !== null) {
+		words.push(pending);
+	}
+
+	return words;
+}
+
+/** A leading shell variable assignment such as `DEBIAN_FRONTEND=x`. */
+const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/u;
 
 //------------------------------------------------------------------------------
 // Rule Definition
@@ -114,7 +190,18 @@ const rule: DockerRuleDefinition<{ MessageIds: "noUpgrade" }> = {
 					node.command,
 					sourceCode.text,
 				)) {
-					const [name, ...rest] = command.words;
+					const words = toShellWords(command.words);
+
+					// Assignments before the executable only set its
+					// environment.
+					while (
+						words.length > 0 &&
+						ASSIGNMENT.test(words[0] as string)
+					) {
+						words.shift();
+					}
+
+					const [name, ...rest] = words;
 
 					if (name === undefined || !APT_COMMANDS.has(name)) {
 						continue;

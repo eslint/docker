@@ -12,8 +12,11 @@ resulting package versions are recorded nowhere. It also bloats the image
 with package cache layers.
 
 If the base image is missing security fixes, the right response is to use
-a newer base image tag, which keeps the full package set declared and
-reproducible.
+a newer base image. Tags such as `ubuntu:24.04` can point to a different
+image over time, so pin the base image by digest
+(`ubuntu:24.04@sha256:...`) when you need reproducible builds; other
+unpinned inputs, such as packages installed without a version, can still
+change between builds.
 
 ## Rule Details
 
@@ -25,6 +28,11 @@ The rule splits compound commands only at operators written as separate
 words (`a && b`) or at a `;` that ends a word (`a; b`). An operator
 attached to a neighboring word, as in `echo ok&& apt-get upgrade`, does not
 start a new command, so an upgrade after it is not reported.
+
+Leading variable assignments such as
+`DEBIAN_FRONTEND=noninteractive apt-get upgrade` are skipped, but commands
+run through another program, such as `env apt-get upgrade`,
+`xargs apt-get upgrade`, or `sudo apt-get upgrade`, are not reported.
 
 Examples of **incorrect** code for this rule:
 

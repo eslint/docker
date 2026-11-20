@@ -34,7 +34,13 @@ ruleTester.run("no-apt-get-upgrade", rule as never, {
 		// A comment ends the command.
 		"RUN apt-get update # && apt-get upgrade",
 		// An escaped semicolon does not start a new command.
-		"RUN echo marker\\; sudo apt-get upgrade",
+		"RUN echo marker\\; apt-get upgrade",
+		// -a means --all-versions for apt list, so upgrade is a filter.
+		"RUN apt -a list upgrade",
+		// A quoted option value is one word.
+		"RUN apt-get -o 'Acquire::http::User-Agent=build upgrade client' update",
+		// An assignment does not skip past a different executable.
+		"RUN DEBIAN_FRONTEND=noninteractive echo apt-get upgrade",
 	],
 	invalid: [
 		...[
@@ -44,6 +50,13 @@ ruleTester.run("no-apt-get-upgrade", rule as never, {
 			"RUN apt-get -qo Acquire::Retries=3 upgrade",
 			"RUN apt-get -oAcquire::Retries=3 upgrade",
 			"RUN apt-get --option=Acquire::Retries=3 upgrade",
+			"RUN apt-get -q 2 upgrade",
+			"RUN apt-get -q upgrade",
+			"RUN apt-get -a arm64 upgrade",
+			"RUN apt-get 'upgrade'",
+			'RUN apt-get "upgrade" -y',
+			"RUN DEBIAN_FRONTEND=noninteractive apt-get upgrade -y",
+			"RUN apt-get -o 'Acquire::http::User-Agent=build client' upgrade",
 		].map(code => ({
 			code,
 			errors: [
