@@ -95,6 +95,54 @@ describe("splitShellCommands", () => {
 		expect(commands[0]?.words[0]).toBe("cd");
 	});
 
+	it("should omit a standalone group opener", () => {
+		const commands = split("( cd /app && make )");
+
+		expect(commands[0]?.words).toEqual(["cd", "/app"]);
+		expect(commands[0]?.tokens[0].value).toBe("cd");
+	});
+
+	it("should keep an escaped opening parenthesis", () => {
+		const commands = split("\\(cd /app");
+
+		expect(commands[0]?.words[0]).toBe("(cd");
+	});
+
+	it("should stop at a comment right after a semicolon", () => {
+		const commands = split("echo ok;# note && make");
+
+		expect(commands.map(command => command.words)).toEqual([
+			["echo", "ok"],
+		]);
+	});
+
+	it("should not start a comment after an escaped blank", () => {
+		const commands = split("echo word\\ #tag && make");
+
+		expect(commands.map(command => command.words[0])).toEqual([
+			"echo",
+			"make",
+		]);
+	});
+
+	it("should ignore comment lines inside continued tokens", () => {
+		const commands = split('echo o\\\n# "\nk && make');
+
+		expect(commands.map(command => command.words[0])).toEqual([
+			"echo",
+			"make",
+		]);
+	});
+
+	it("should classify operators split by a line continuation", () => {
+		const commands = split("echo ok &\\\n& make");
+
+		expect(commands.map(command => command.words[0])).toEqual([
+			"echo",
+			"make",
+		]);
+	});
+
 	it("should not split quoted operators", () => {
 		const commands = split('echo "a && b"');
 
@@ -133,8 +181,8 @@ describe("splitShellCommands", () => {
 
 describe("spanOfTokens", () => {
 	it("should span from the first to the last token", () => {
-		const { form } = parseRun("echo one two");
-		const span = spanOfTokens(form.arguments);
+		const [command] = split("echo one two");
+		const span = spanOfTokens((command as ShellCommand).tokens);
 
 		expect(span).toEqual({ start: 4, end: 16 });
 	});
