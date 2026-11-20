@@ -44,7 +44,10 @@ ruleTester.run("no-sudo", rule as never, {
 		},
 		{
 			code: "RUN sudo ls; sudo whoami",
-			errors: [{ messageId: "noSudo" }, { messageId: "noSudo" }],
+			errors: [
+				{ messageId: "noSudo", column: 5 },
+				{ messageId: "noSudo", column: 14 },
+			],
 		},
 	],
 });
