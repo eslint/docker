@@ -56,6 +56,21 @@ describe("parseDocker", () => {
 		expect(ast.end).toBe(text.length);
 	});
 
+	it.each([
+		["LF", "\n"],
+		["CRLF", "\r\n"],
+		["CR", "\r"],
+	])("should compute offsets with %s line endings", (_, eol) => {
+		const text = `FROM alpine${eol}RUN echo hi${eol}`;
+		const { ast } = parseDocker(text);
+
+		expect(ast.body.map(node => node.start)).toEqual([
+			0,
+			text.indexOf("RUN"),
+		]);
+		expect(ast.body[1]?.end).toBe(text.indexOf("hi") + 2);
+	});
+
 	describe("comments and directives", () => {
 		it("should collect comments with offsets and stripped text", () => {
 			const text = "# hello world\nFROM node:20\n";
@@ -375,6 +390,15 @@ describe("parseDocker", () => {
 			expect(copy.sources.map(source => source.value)).toEqual(["<<EOF"]);
 			expect(copy.destination?.value).toBe("/app/message.txt");
 			expect(copy.end).toBe(text.length - 1);
+		});
+
+		it("should skip comment lines inside a continued heredoc header", () => {
+			const text =
+				"COPY <<EOF \\\n# note\n\n/app/message.txt\nhello\nEOF\n";
+			const copy = parseDocker(text).ast.body[0] as CopyInstructionNode;
+
+			expect(copy.sources.map(source => source.value)).toEqual(["<<EOF"]);
+			expect(copy.destination?.value).toBe("/app/message.txt");
 		});
 
 		it("should handle a missing destination", () => {

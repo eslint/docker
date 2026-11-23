@@ -60,7 +60,8 @@ function createPositionConverter(
 	const lineStarts = [0];
 
 	for (let i = 0; i < text.length; i++) {
-		if (text[i] === "\n") {
+		// LF, CRLF, and a standalone CR each end a line.
+		if (text[i] === "\n" || (text[i] === "\r" && text[i + 1] !== "\n")) {
 			lineStarts.push(i + 1);
 		}
 	}
@@ -271,6 +272,7 @@ export function parseDocker(text: string): DockerParseResult {
 		}
 
 		let headerEnd = instructionStart;
+		let continued = false;
 
 		for (;;) {
 			const newline = text.indexOf("\n", headerEnd);
@@ -279,13 +281,21 @@ export function parseDocker(text: string): DockerParseResult {
 				return args;
 			}
 
+			const line = text.slice(headerEnd, newline).trim();
+
 			headerEnd = newline + 1;
 
-			const line = text.slice(instructionStart, newline).trimEnd();
+			// Comment and empty lines inside a continuation are removed
+			// before the header is parsed, so they do not end it.
+			if (continued && (line === "" || line.startsWith("#"))) {
+				continue;
+			}
 
 			if (!line.endsWith(escapeCharacter)) {
 				break;
 			}
+
+			continued = true;
 		}
 
 		return args.filter(argument => argument.start < headerEnd);
