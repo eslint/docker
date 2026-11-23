@@ -125,6 +125,18 @@ describe("splitShellCommands", () => {
 		]);
 	});
 
+	it("should start a comment after an unescaped blank that follows an escaped one", () => {
+		const commands = split("echo word\\  # note && make");
+
+		expect(commands.map(command => command.words[0])).toEqual(["echo"]);
+	});
+
+	it("should start a comment after an escaped backslash and a blank", () => {
+		const commands = split("echo word\\\\ # note && make");
+
+		expect(commands.map(command => command.words[0])).toEqual(["echo"]);
+	});
+
 	it("should ignore comment lines inside continued tokens", () => {
 		const commands = split('echo o\\\n# "\nk && make');
 

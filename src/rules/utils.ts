@@ -30,6 +30,12 @@ const COMMAND_SEPARATORS = new Set(["&&", "||", ";", "|", "&"]);
  */
 const CONTINUATION = /[\\`][ \t]*\r?\n(?:[ \t]*(?:#[^\n]*)?\r?\n)*/gu;
 
+/**
+ * Matches text ending in a blank that is not escaped: preceded by an even
+ * number of backslashes.
+ */
+const UNESCAPED_TRAILING_BLANK = /(?:^|[^\\])(?:\\\\)*[ \t]$/u;
+
 /** A token made up only of subshell group openers, such as `(`. */
 const GROUP_OPENER = /^\(+$/u;
 
@@ -161,8 +167,16 @@ export function splitShellCommands(
 
 		previousEnd = argument.end;
 
-		// An escaped blank (`word\ #tag`) keeps the `#` inside the word.
-		if (quote === null && raw.startsWith("#") && !/\\[ \t]/u.test(gap)) {
+		// A `#` starts a comment only at the start of a word: after an
+		// unescaped blank. An escaped blank (`word\ #tag`) keeps the `#`
+		// inside the word, but `word\  #note` has a second, unescaped
+		// blank before it.
+		if (
+			quote === null &&
+			raw.startsWith("#") &&
+			(gap === "" ||
+				UNESCAPED_TRAILING_BLANK.test(gap.replace(CONTINUATION, "")))
+		) {
 			// The shell ignores the rest of the line after a comment.
 			break;
 		}
