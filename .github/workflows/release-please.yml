@@ -1,0 +1,48 @@
+name: release-please
+
+on:
+    push:
+        branches: [main]
+
+jobs:
+    release-please:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            id-token: write
+        steps:
+            - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
+              id: release
+              with:
+                  token: ${{ secrets.WORKFLOW_PUSH_BOT_TOKEN }}
+
+              # npm provenance records the commit that triggered this run, so
+              # only publish when that is the commit being released.
+            - name: Verify release commit
+              if: ${{ steps.release.outputs.release_created }}
+              env:
+                  RELEASE_SHA: ${{ steps.release.outputs.sha }}
+              run: |
+                  if [ "$RELEASE_SHA" != "$GITHUB_SHA" ]; then
+                      echo "::error::Release commit $RELEASE_SHA differs from $GITHUB_SHA; publish it manually."
+                      exit 1
+                  fi
+
+            - uses: actions/checkout@v7
+              if: ${{ steps.release.outputs.release_created }}
+              with:
+                  ref: ${{ steps.release.outputs.sha }}
+                  persist-credentials: false
+
+            - uses: actions/setup-node@v7
+              if: ${{ steps.release.outputs.release_created }}
+              with:
+                  node-version: lts/*
+                  registry-url: "https://registry.npmjs.org"
+
+            - name: Build and Publish
+              run: |
+                  npm install
+                  npm run build
+                  npm publish --provenance
+              if: ${{ steps.release.outputs.release_created }}
