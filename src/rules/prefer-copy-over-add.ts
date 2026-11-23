@@ -25,6 +25,25 @@ const ARCHIVE_SOURCE = /\.(?:tar|tgz|txz|tbz2?|tar\.(?:gz|bz2|xz|zst))$/iu;
  */
 const UNRESOLVED_SOURCE = /[$*?[\]"']/u;
 
+/**
+ * Removes trailing `/` and `/.` segments from a path, so `dir/` becomes
+ * `dir` and `archive.tar.gz/.` becomes `archive.tar.gz`. A loop keeps
+ * this linear in the length of the path.
+ */
+function removeTrailingSeparators(path: string): string {
+	let end = path.length;
+
+	for (;;) {
+		if (path[end - 1] === "/") {
+			end--;
+		} else if (path[end - 1] === "." && path[end - 2] === "/") {
+			end -= 2;
+		} else {
+			return path.slice(0, end);
+		}
+	}
+}
+
 /** Flags that COPY does not support. */
 const ADD_ONLY_FLAGS = new Set(["checksum", "keep-git-dir", "unpack"]);
 
@@ -73,7 +92,7 @@ const rule: DockerRuleDefinition<{
 						const { value } = source;
 						// `archive.tar.gz/.` and `archive.tar.gz/` name the
 						// same file as `archive.tar.gz`.
-						const path = value.replace(/(?:\/+\.?)+$/u, "");
+						const path = removeTrailingSeparators(value);
 
 						return (
 							URL_SOURCE.test(value) ||

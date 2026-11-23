@@ -34,6 +34,7 @@ ruleTester.run("prefer-copy-over-add", rule as never, {
 		// Trailing slashes are ignored when resolving sources.
 		"ADD rootfs.tar.gz/ /",
 		"ADD rootfs.tar.gz/. /",
+		"ADD rootfs.tar.gz//./ /",
 		// Variable sources cannot be checked.
 		"ADD $ARTIFACT /app/",
 		// Wildcards may match archives.
@@ -47,6 +48,23 @@ ruleTester.run("prefer-copy-over-add", rule as never, {
 		"ADD",
 	],
 	invalid: [
+		{
+			// A long run of slashes inside a source is checked in linear
+			// time.
+			code: `ADD src${"/".repeat(64)}file /app/`,
+			output: null,
+			errors: [
+				{
+					messageId: "useCopy",
+					suggestions: [
+						{
+							messageId: "replaceWithCopy",
+							output: `COPY src${"/".repeat(64)}file /app/`,
+						},
+					],
+				},
+			],
+		},
 		{
 			// A keyword split by a line continuation gets no suggestion.
 			code: "AD\\\nD src/ /app/",
