@@ -34,6 +34,7 @@ ruleTester.run("require-absolute-workdir", rule as never, {
 		"WORKDIR",
 		// Dockerfile escapes are removed before the check.
 		"WORKDIR \\/app",
+		'WORKDIR "C:\\app"',
 		"# escape=`\nFROM scratch\nWORKDIR `/app",
 		// Comment lines inside a continuation are not part of the path.
 		'WORKDIR ""\\\n# comment\n/app',
@@ -66,6 +67,20 @@ ruleTester.run("require-absolute-workdir", rule as never, {
 			// $'...' is not expanded by Docker.
 			code: "WORKDIR $'HOME'/cache",
 			errors: [{ messageId: "expectedAbsolute" }],
+		},
+		{
+			// Inside double quotes, the backslash before `/` is kept.
+			code: 'WORKDIR "\\/app"',
+			errors: [
+				{ messageId: "expectedAbsolute", data: { path: "\\/app" } },
+			],
+		},
+		{
+			// Inside double quotes, an escaped $ is still literal.
+			code: 'WORKDIR "\\$HOME/app"',
+			errors: [
+				{ messageId: "expectedAbsolute", data: { path: "$HOME/app" } },
+			],
 		},
 		{
 			// An escaped $ is literal.

@@ -37,10 +37,16 @@ function unquote(
 	for (let i = 0; i < raw.length; i++) {
 		const character = raw[i] as string;
 
+		const next = raw[i + 1];
+
 		if (
 			character === escapeCharacter &&
-			quote !== "'" &&
-			i + 1 < raw.length
+			next !== undefined &&
+			(quote === null ||
+				// Inside double quotes, the escape character is kept
+				// unless it escapes `"`, `$`, or itself.
+				(quote === '"' &&
+					(next === '"' || next === "$" || next === escapeCharacter)))
 		) {
 			// The escaped character is literal, including `$`.
 			i++;
