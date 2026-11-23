@@ -48,11 +48,11 @@ const VALUE_SHORT_OPTIONS = new Set(["o", "c", "t", "a", "S"]);
  * time, the way APT parses them.
  */
 function takesNextWord(word: string, nextWord: string | undefined): boolean {
-	if (word.startsWith("--")) {
-		return VALUE_LONG_OPTIONS.has(word);
+	if (VALUE_LONG_OPTIONS.has(word)) {
+		return true;
 	}
 
-	for (let i = 1; i < word.length; i++) {
+	for (let i = 1; i < word.length && !word.startsWith("--"); i++) {
 		const letter = word[i] as string;
 
 		// `-a` is `--host-architecture` (with a value) for commands such as
@@ -71,11 +71,35 @@ function takesNextWord(word: string, nextWord: string | undefined): boolean {
 		}
 	}
 
+	if (nextWord === undefined) {
+		return false;
+	}
+
 	// A quiet level may follow `-q` as a separate word (`-q 2`).
-	return (
-		word.endsWith("q") && nextWord !== undefined && /^\d+$/u.test(nextWord)
-	);
+	if (word.endsWith("q") && /^\d+$/u.test(nextWord)) {
+		return true;
+	}
+
+	// A Boolean option such as `-y` or `--assume-yes` takes an explicit
+	// value from the following word (`-y true`) unless one is attached.
+	return !word.includes("=") && BOOLEAN_VALUES.has(nextWord.toLowerCase());
 }
+
+/** The values APT accepts for a Boolean option. */
+const BOOLEAN_VALUES = new Set([
+	"0",
+	"1",
+	"no",
+	"false",
+	"without",
+	"off",
+	"disable",
+	"yes",
+	"true",
+	"with",
+	"on",
+	"enable",
+]);
 
 /**
  * APT subcommands for which `-a` means `--all-versions`, so it does not
@@ -109,10 +133,14 @@ function findSubcommand(words: string[]): string | undefined {
 	return undefined;
 }
 
+/** Characters that a backslash escapes inside double quotes. */
+const DOUBLE_QUOTE_ESCAPABLE = new Set(["$", "`", '"', "\\"]);
+
 /**
- * Joins token values into shell words: tokens inside an open quote are
- * merged with the following tokens, and quote characters are removed, so
- * `'upgrade'` becomes `upgrade` and `-o 'a b'` gives one value word.
+ * Decodes the source spelling of tokens into shell words: tokens inside
+ * an open quote are merged with the following tokens, and quotes and
+ * escapes are removed, so `'upgrade'` becomes `upgrade` and `-o 'a b'`
+ * gives one value word.
  */
 function toShellWords(values: string[]): string[] {
 	const words: string[] = [];
@@ -125,7 +153,13 @@ function toShellWords(values: string[]): string[] {
 		for (let i = 0; i < value.length; i++) {
 			const character = value[i] as string;
 
-			if (character === "\\" && quote !== "'" && i + 1 < value.length) {
+			if (
+				character === "\\" &&
+				i + 1 < value.length &&
+				(quote === null ||
+					(quote === '"' &&
+						DOUBLE_QUOTE_ESCAPABLE.has(value[i + 1] as string)))
+			) {
 				i++;
 				word += value[i];
 			} else if (
@@ -190,7 +224,7 @@ const rule: DockerRuleDefinition<{ MessageIds: "noUpgrade" }> = {
 					node.command,
 					sourceCode.text,
 				)) {
-					const words = toShellWords(command.words);
+					const words = toShellWords(command.raw);
 
 					// Assignments before the executable only set its
 					// environment.

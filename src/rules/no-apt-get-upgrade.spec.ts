@@ -57,6 +57,13 @@ ruleTester.run("no-apt-get-upgrade", rule as never, {
 			'RUN apt-get "upgrade" -y',
 			"RUN DEBIAN_FRONTEND=noninteractive apt-get upgrade -y",
 			"RUN apt-get -o 'Acquire::http::User-Agent=build client' upgrade",
+			'RUN apt-get -o Acquire::http::User-Agent=build\\" upgrade',
+			'RUN apt-get -o "Acquire::http::User-Agent=a\\"b" upgrade',
+			// Boolean options consume an explicit value.
+			"RUN apt-get --assume-yes true upgrade",
+			"RUN apt-get -y true upgrade",
+			"RUN apt-get -y No upgrade",
+			"RUN apt-get -y upgrade",
 		].map(code => ({
 			code,
 			errors: [
