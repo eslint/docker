@@ -7,7 +7,11 @@
 // Imports
 //------------------------------------------------------------------------------
 
-import type { ArgumentNode, DockerRuleDefinition } from "../types.js";
+import type {
+	ArgumentNode,
+	DockerRuleDefinition,
+	MaintainerInstructionNode,
+} from "../types.js";
 
 //------------------------------------------------------------------------------
 // Rule Definition
@@ -36,9 +40,59 @@ const rule: DockerRuleDefinition<{ MessageIds: "useLabel" }> = {
 		// which the fix would overwrite.
 		let stageHasMaintainerLabel = false;
 
+		// The MAINTAINER instructions of the current stage. Each one
+		// overwrites the author set by the previous one, so only the last
+		// can be converted without changing the image's metadata.
+		let stageMaintainers: {
+			node: MaintainerInstructionNode;
+			canFix: boolean;
+		}[] = [];
+
+		/**
+		 * Reports the MAINTAINER instructions of the stage that just ended,
+		 * offering a fix for the last one only.
+		 */
+		function reportStage(): void {
+			stageMaintainers.forEach(({ node, canFix }, index) => {
+				const isLast = index === stageMaintainers.length - 1;
+
+				context.report({
+					node,
+					messageId: "useLabel",
+					fix:
+						canFix && isLast
+							? fixer =>
+									fixer.replaceTextRange(
+										[node.start, node.end],
+										`LABEL maintainer="${maintainerText(node)}"`,
+									)
+							: undefined,
+				});
+			});
+
+			stageMaintainers = [];
+		}
+
+		/**
+		 * Returns the source text of a MAINTAINER instruction's value.
+		 */
+		function maintainerText(node: MaintainerInstructionNode): string {
+			const first = node.arguments[0];
+			const last = node.arguments.at(-1) as ArgumentNode | undefined;
+
+			return first && last
+				? sourceCode.text.slice(first.start, last.end)
+				: "";
+		}
+
 		return {
 			FromInstruction() {
+				reportStage();
 				stageHasMaintainerLabel = false;
+			},
+
+			"Dockerfile:exit"() {
+				reportStage();
 			},
 
 			LabelInstruction(node) {
@@ -48,12 +102,7 @@ const rule: DockerRuleDefinition<{ MessageIds: "useLabel" }> = {
 			},
 
 			MaintainerInstruction(node) {
-				const first = node.arguments[0];
-				const last = node.arguments.at(-1) as ArgumentNode | undefined;
-				const argsText =
-					first && last
-						? sourceCode.text.slice(first.start, last.end)
-						: "";
+				const argsText = maintainerText(node);
 
 				// Only fix simple single-line values without quoting
 				// concerns. MAINTAINER keeps `$` and escape characters
@@ -70,17 +119,7 @@ const rule: DockerRuleDefinition<{ MessageIds: "useLabel" }> = {
 					!/^--(?:\s|$)/u.test(argsText) &&
 					!stageHasMaintainerLabel;
 
-				context.report({
-					node,
-					messageId: "useLabel",
-					fix: canFix
-						? fixer =>
-								fixer.replaceTextRange(
-									[node.start, node.end],
-									`LABEL maintainer="${argsText}"`,
-								)
-						: undefined,
-				});
+				stageMaintainers.push({ node, canFix });
 			},
 		};
 	},

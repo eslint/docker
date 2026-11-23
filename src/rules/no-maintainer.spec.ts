@@ -79,6 +79,23 @@ ruleTester.run("no-maintainer", rule as never, {
 			errors: [{ messageId: "useLabel" }],
 		},
 		{
+			// Only the last MAINTAINER in a stage sets the author, so an
+			// earlier one is not converted when the last cannot be.
+			code: "FROM scratch\nMAINTAINER Jane\nMAINTAINER $TEAM",
+			output: null,
+			errors: [{ messageId: "useLabel" }, { messageId: "useLabel" }],
+		},
+		{
+			// The last MAINTAINER is converted first.
+			code: "FROM scratch\nMAINTAINER Jane\nMAINTAINER Joe\nFROM scratch\nMAINTAINER Ann",
+			output: 'FROM scratch\nMAINTAINER Jane\nLABEL maintainer="Joe"\nFROM scratch\nLABEL maintainer="Ann"',
+			errors: [
+				{ messageId: "useLabel", line: 2 },
+				{ messageId: "useLabel", line: 3 },
+				{ messageId: "useLabel", line: 5 },
+			],
+		},
+		{
 			// A MAINTAINER without a value has nothing to convert.
 			code: "MAINTAINER",
 			output: null,

@@ -22,7 +22,9 @@ simple single-line string without quotes or backslashes, the rule fixes
 the instruction by rewriting it as a `maintainer` `LABEL`. The fix is
 skipped when the value starts with a `--` delimiter or has leading or
 trailing whitespace, or when the stage already sets a `maintainer` label
-that the fix would overwrite.
+that the fix would overwrite. When a stage has several `MAINTAINER`
+instructions, only the last one sets the author, so only the last one is
+fixed.
 
 Examples of **incorrect** code for this rule:
 
