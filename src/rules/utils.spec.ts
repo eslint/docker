@@ -33,6 +33,15 @@ describe("splitShellCommands", () => {
 		expect(commands[0]?.words).toEqual(["apt-get", "install", "-y", "git"]);
 	});
 
+	it("should keep the source spelling of each word", () => {
+		const commands = split("(echo a\\\"b 'c\\\n d'; make");
+
+		expect(commands.map(command => command.raw)).toEqual([
+			["echo", 'a\\"b', "'c", "d'"],
+			["make"],
+		]);
+	});
+
 	it("should split on && and || operator tokens", () => {
 		const commands = split(
 			"apt-get update && apt-get install -y git || true",

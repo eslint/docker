@@ -59,6 +59,14 @@ export interface ShellCommand {
 	 * `tokens` and `words`.
 	 */
 	words: string[];
+
+	/**
+	 * The source spelling of each word, with Dockerfile continuations
+	 * removed but quotes and shell escapes kept, trimmed the same way as
+	 * `words`. Use this to decode shell quoting, because `words` already
+	 * has some escapes resolved.
+	 */
+	raw: string[];
 }
 
 /**
@@ -92,22 +100,29 @@ export function splitShellCommands(
 			const tokens: NonEmptyTokens = [first, ...rest];
 			const firstRaw = currentRaw[0] as string;
 
+			/**
+			 * Removes a group opener from the first word and a separator
+			 * from the last word.
+			 */
+			const trim = (word: string, index: number): string => {
+				let result = word;
+
+				// Only an unescaped `(` opens a group; `\(cd` is a word.
+				if (index === 0 && firstRaw.startsWith("(")) {
+					result = result.replace(/^\(+/u, "");
+				}
+
+				if (endsWithSeparator && index === tokens.length - 1) {
+					result = result.replace(/;(?:#.*)?$/u, "");
+				}
+
+				return result;
+			};
+
 			commands.push({
 				tokens,
-				words: tokens.map((token, index) => {
-					let word = token.value;
-
-					// Only an unescaped `(` opens a group; `\(cd` is a word.
-					if (index === 0 && firstRaw.startsWith("(")) {
-						word = word.replace(/^\(+/u, "");
-					}
-
-					if (endsWithSeparator && index === tokens.length - 1) {
-						word = word.replace(/;(?:#.*)?$/u, "");
-					}
-
-					return word;
-				}),
+				words: tokens.map((token, index) => trim(token.value, index)),
+				raw: currentRaw.map(trim),
 			});
 		}
 
