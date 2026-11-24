@@ -29,10 +29,19 @@ const rule: DockerRuleDefinition<{ MessageIds: "noSudo" }> = {
 		},
 	},
 
+	/**
+	 * Creates the rule's visitor.
+	 * @param context The rule context.
+	 * @returns A visitor that checks RUN instructions.
+	 */
 	create(context) {
 		const { sourceCode } = context;
 
 		return {
+			/**
+			 * Reports each `sudo` command in a shell-form RUN instruction.
+			 * @param node The RUN instruction to check.
+			 */
 			RunInstruction(node) {
 				if (node.command?.type !== "ShellForm") {
 					return;
