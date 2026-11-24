@@ -35,11 +35,25 @@ const rule: DockerRuleDefinition<{ MessageIds: "duplicateInstruction" }> = {
 		},
 	},
 
+	/**
+	 * Creates the rule's visitor.
+	 * @param context The rule context.
+	 * @returns A visitor that checks the whole Dockerfile.
+	 */
 	create(context) {
 		return {
+			/**
+			 * Reports every singleton instruction that a later one in the
+			 * same stage overrides.
+			 * @param node The root node of the Dockerfile.
+			 */
 			Dockerfile(node) {
 				let seen = new Map<string, InstructionNode[]>();
 
+				/**
+				 * Reports all but the last instruction of each keyword seen
+				 * in the current stage, then starts a new stage.
+				 */
 				const flush = (): void => {
 					for (const [keyword, instructions] of seen) {
 						for (const instruction of instructions.slice(0, -1)) {
