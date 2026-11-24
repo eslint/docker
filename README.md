@@ -64,7 +64,9 @@ export default defineConfig([
 
 ## Rules
 
-Each rule mirrors a well-known hadolint check or Docker best practice.
+Each rule mirrors a well-known hadolint check or Docker best practice. In the
+Fixable column, ✅ means `eslint --fix` fixes the problem and 💡 means the
+rule offers an editor suggestion instead.
 
 | Rule                                                                             | hadolint      | Description                                                           | Fixable | Recommended |
 | -------------------------------------------------------------------------------- | ------------- | --------------------------------------------------------------------- | ------- | ----------- |
@@ -74,6 +76,7 @@ Each rule mirrors a well-known hadolint check or Docker best practice.
 | [`no-duplicate-instructions`](./docs/rules/no-duplicate-instructions.md)         | DL4003/DL4004 | Only one `CMD`, `ENTRYPOINT`, or `HEALTHCHECK` per stage takes effect |         | error       |
 | [`no-maintainer`](./docs/rules/no-maintainer.md)                                 | DL4000        | `MAINTAINER` is deprecated; use a `maintainer` `LABEL`                | ✅      | error       |
 | [`no-sudo`](./docs/rules/no-sudo.md)                                             | DL3004        | Don't use `sudo` in `RUN`; switch users with `USER`                   |         | error       |
+| [`prefer-copy-over-add`](./docs/rules/prefer-copy-over-add.md)                   | DL3020        | Use `COPY` unless you need `ADD`'s URL or archive handling            | 💡      | error       |
 
 ## Configuration comments
 
