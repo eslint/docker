@@ -129,6 +129,12 @@ const rule: DockerRuleDefinition<{ MessageIds: "useExecForm" }> = {
 		},
 	},
 
+	/**
+	 * Creates the rule's visitor.
+	 * @param context The rule context.
+	 * @returns A visitor that checks the CMD and ENTRYPOINT instructions of
+	 * the whole Dockerfile.
+	 */
 	create(context) {
 		const { sourceCode } = context;
 
@@ -195,6 +201,11 @@ const rule: DockerRuleDefinition<{ MessageIds: "useExecForm" }> = {
 		}
 
 		return {
+			/**
+			 * Reports each shell-form CMD and ENTRYPOINT, deciding per build
+			 * stage whether a fix is safe.
+			 * @param node The root node of the Dockerfile.
+			 */
 			Dockerfile(node) {
 				// Group instructions into build stages, each starting at
 				// a FROM instruction.
@@ -240,6 +251,9 @@ const rule: DockerRuleDefinition<{ MessageIds: "useExecForm" }> = {
 				 * Returns whether a stage's ENTRYPOINT would receive a CMD,
 				 * either from the stage itself or from a later stage that
 				 * builds on it without replacing the ENTRYPOINT.
+				 * @param index The index of the stage in `stages`.
+				 * @returns `true` if the stage's ENTRYPOINT would receive a
+				 * CMD.
 				 */
 				function receivesCmd(index: number): boolean {
 					const stage = stages[index] as StageInfo;
