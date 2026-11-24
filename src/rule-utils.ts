@@ -13,7 +13,7 @@
 // Imports
 //------------------------------------------------------------------------------
 
-import type { ArgumentNode, ShellFormNode } from "../types.js";
+import type { ArgumentNode, ShellFormNode } from "./types.js";
 
 //------------------------------------------------------------------------------
 // Helpers

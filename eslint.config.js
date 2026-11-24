@@ -40,7 +40,7 @@ export default defineConfig(
 	},
 	{
 		files: ["src/rules/*.ts"],
-		ignores: ["src/rules/*.spec.ts", "src/rules/utils.ts"],
+		ignores: ["src/rules/*.spec.ts"],
 		extends: [eslintPluginRulesRecommendedConfig],
 		rules: {
 			"eslint-plugin/require-meta-docs-recommended": "error",

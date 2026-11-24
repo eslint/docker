@@ -3,10 +3,10 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { splitShellCommands, spanOfTokens } from "./utils.js";
-import { parseDocker } from "../parser/parse.js";
-import type { ShellCommand } from "./utils.js";
-import type { RunInstructionNode, ShellFormNode } from "../types.js";
+import { splitShellCommands, spanOfTokens } from "./rule-utils.js";
+import { parseDocker } from "./parser/parse.js";
+import type { ShellCommand } from "./rule-utils.js";
+import type { RunInstructionNode, ShellFormNode } from "./types.js";
 
 /**
  * Parses a RUN instruction with a shell-form command.
