@@ -47,7 +47,6 @@ interface Range {
 
 export interface DockerParseResult {
 	ast: DockerfileNode;
-	comments: CommentNode[];
 }
 
 /**
@@ -579,5 +578,5 @@ export function parseDocker(text: string): DockerParseResult {
 		end: text.length,
 	};
 
-	return { ast, comments };
+	return { ast };
 }

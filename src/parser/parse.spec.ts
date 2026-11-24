@@ -35,7 +35,7 @@ import type {
 
 describe("parseDocker", () => {
 	it("should produce an empty Dockerfile node for empty input", () => {
-		const { ast, comments } = parseDocker("");
+		const { ast } = parseDocker("");
 
 		expect(ast).toEqual({
 			type: "Dockerfile",
@@ -45,7 +45,6 @@ describe("parseDocker", () => {
 			start: 0,
 			end: 0,
 		});
-		expect(comments).toEqual([]);
 	});
 
 	it("should span the whole text with the root node", () => {
@@ -74,16 +73,15 @@ describe("parseDocker", () => {
 	describe("comments and directives", () => {
 		it("should collect comments with offsets and stripped text", () => {
 			const text = "# hello world\nFROM node:20\n";
-			const { ast, comments } = parseDocker(text);
+			const { ast } = parseDocker(text);
 
-			expect(comments).toHaveLength(1);
-			expect(comments[0]).toMatchObject({
+			expect(ast.comments).toHaveLength(1);
+			expect(ast.comments[0]).toMatchObject({
 				type: "Comment",
 				text: "hello world",
 				start: 0,
 				end: 13,
 			});
-			expect(ast.comments).toBe(comments);
 		});
 
 		it("should treat leading pragmas as parser directives", () => {

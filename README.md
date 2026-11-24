@@ -32,7 +32,7 @@ The parser is also exported directly:
 ```js
 import { parseDocker } from "@eslint/docker";
 
-const { ast, comments } = parseDocker("FROM node:20-alpine\n");
+const { ast } = parseDocker("FROM node:20-alpine\n");
 ```
 
 Parsing never fails: the underlying parser is error-tolerant, so malformed
