@@ -110,9 +110,10 @@ interface ExecForm extends DockerNodeBase {
 `Argument` is used in several positions with slightly different value
 semantics:
 
-- **Shell-form tokens** (`RUN echo hi`): `value` is the token exactly as
-  written, including any quotes. Tokens are split on whitespace only, so
-  `echo "a b"` produces the tokens `echo`, `"a`, and `b"`.
+- **Shell-form tokens** (`RUN echo hi`): tokens are split on whitespace
+  only, and `value` keeps any quotes, so `echo "a b"` produces the tokens
+  `echo`, `"a`, and `b"`. See [Shell-form tokens](#shell-form-tokens) for
+  how escapes affect `value`.
 - **Exec-form elements** (`CMD ["a b"]`): `value` is the raw text between
   the double quotes (`a b`), while the offsets include the quotes.
 - **Key/value pairs** (`ENV a="b c"`): the pair's `value` argument has
@@ -122,6 +123,37 @@ semantics:
 FROM node:20
 RUN echo hello && echo world
 ```
+
+#### Shell-form tokens
+
+The parser does not interpret shell syntax. Docker itself passes a
+shell-form command to the shell as a single string, and the quoting rules
+depend on which shell runs it (`/bin/sh`, `cmd`, PowerShell, or whatever a
+`SHELL` instruction selects), which the parser cannot know. Splitting on
+whitespace alone makes no assumption about the shell, and keeping the
+quotes means no information is lost: a rule that needs shell words can
+apply the quoting rules it wants across the tokens.
+
+A token's `value` is not always its exact source text, because the
+Dockerfile escape character (`\`, or `` ` `` when the `escape` directive
+selects it) is processed first:
+
+| Source               | Tokens                                    |
+| -------------------- | ----------------------------------------- |
+| `"a b"`              | `"a` and `b"`                             |
+| `c\"d`               | `c"d`                                     |
+| `g\\h`               | `g\h`                                     |
+| `\$x`                | `\$x`                                     |
+| `a\ b`               | `a` and `b`; neither token covers the `\` |
+| `"q\`, newline, `r"` | `"qr"`, spanning both lines               |
+
+That is, the escape character is removed before most characters but kept
+before `$`, an escaped space still separates tokens, and a line
+continuation inside a token is removed from its `value`.
+
+To get a token's exact spelling, slice the source text with its `start`
+and `end` offsets rather than reading `value`. To see what separates two
+tokens (for example, an escaped space), slice the text between them.
 
 ### `FROM`
 
