@@ -36,11 +36,24 @@ export class DockerFileLanguage implements Language<{
 
 	defaultLanguageOptions: DockerFileLanguageOptions = {};
 
+	/**
+	 * Validates the language options. The Docker language has no options,
+	 * so this accepts anything.
+	 * @param _languageOptions The language options to validate.
+	 */
 	validateLanguageOptions(_languageOptions: DockerFileLanguageOptions): void {
 		// The Docker language currently has no options. By convention,
 		// unknown language options are ignored rather than rejected.
 	}
 
+	/**
+	 * Parses a Dockerfile. Errors are reported in the result rather than
+	 * thrown.
+	 * @param file The file to parse.
+	 * @param _context The language context (unused).
+	 * @returns A successful result with the AST, or a failed result with the
+	 * parse error.
+	 */
 	parse(
 		file: File,
 		_context?: LanguageContext<DockerFileLanguageOptions>,
@@ -70,6 +83,12 @@ export class DockerFileLanguage implements Language<{
 		}
 	}
 
+	/**
+	 * Creates the `SourceCode` object for a successfully parsed file.
+	 * @param file The file that was parsed.
+	 * @param parseResult The successful parse result.
+	 * @returns The source code object for the file.
+	 */
 	createSourceCode(
 		file: File,
 		parseResult: OkParseResult<DockerfileNode>,

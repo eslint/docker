@@ -12,6 +12,11 @@ import type {
 	ShellFormNode,
 } from "../types.js";
 
+/**
+ * Parses text and wraps it in a source code object.
+ * @param text The Dockerfile source text.
+ * @returns The source code object for the text.
+ */
 function createSourceCode(text: string): DockerFileSourceCode {
 	const { ast } = parseDocker(text);
 

@@ -64,12 +64,22 @@ export class DockerFileSourceCode extends TextSourceCodeBase<{
 	#lineOffsets: number[] | null = null;
 	#inlineConfigComments: CommentNode[] | null = null;
 
+	/**
+	 * Creates a new instance.
+	 * @param options The options for the source code.
+	 * @param options.text The source text of the file.
+	 * @param options.ast The root node of the file's syntax tree.
+	 */
 	constructor({ text, ast }: DockerFileSourceCodeOptions) {
 		super({ text, ast });
 		this.comments = ast.comments;
 	}
 
-	/** Character offsets at which each line starts. */
+	/**
+	 * Character offsets at which each line starts, computed on first
+	 * access.
+	 * @returns The offset of the start of each line, in line order.
+	 */
 	get #lineStarts(): number[] {
 		if (!this.#lineOffsets) {
 			const offsets = [0];
@@ -88,6 +98,8 @@ export class DockerFileSourceCode extends TextSourceCodeBase<{
 
 	/**
 	 * Converts a character offset into a 1-based line/column pair.
+	 * @param index The character offset to convert.
+	 * @returns The 1-based line and column of the offset.
 	 */
 	#locFromIndex(index: number): { line: number; column: number } {
 		const lineStarts = this.#lineStarts;
@@ -110,6 +122,11 @@ export class DockerFileSourceCode extends TextSourceCodeBase<{
 		};
 	}
 
+	/**
+	 * Returns the location of a node.
+	 * @param node The node to locate.
+	 * @returns The 1-based start and end line/column of the node.
+	 */
 	getLoc(node: DockerNode): SourceLocation {
 		return {
 			start: this.#locFromIndex(node.start),
@@ -117,21 +134,43 @@ export class DockerFileSourceCode extends TextSourceCodeBase<{
 		};
 	}
 
+	/**
+	 * Returns the character range of a node.
+	 * @param node The node whose range to return.
+	 * @returns The start (inclusive) and end (exclusive) offsets of the
+	 * node.
+	 */
 	getRange(node: DockerNode): SourceRange {
 		return [node.start, node.end];
 	}
 
+	/**
+	 * Returns the parent of a node.
+	 * @param node The node whose parent to return.
+	 * @returns The parent node, or `undefined` for the root node or a node
+	 * that is not in the tree.
+	 */
 	getParent(node: DockerNode): DockerNode | undefined {
 		this.#ensureTraversed();
 		return this.#parents.get(node);
 	}
 
+	/**
+	 * Traverses the tree if it has not been traversed yet, so that parent
+	 * links are available.
+	 */
 	#ensureTraversed(): void {
 		if (!this.#steps) {
 			void [...this.traverse()];
 		}
 	}
 
+	/**
+	 * Returns the steps of a depth-first traversal of the tree, recording
+	 * the parent of each node along the way. The steps are computed once
+	 * and reused.
+	 * @returns An enter and an exit step for each node, in traversal order.
+	 */
 	traverse(): Iterable<TraversalStep> {
 		if (this.#steps) {
 			return this.#steps.values();
@@ -139,6 +178,11 @@ export class DockerFileSourceCode extends TextSourceCodeBase<{
 
 		const steps: VisitNodeStep[] = (this.#steps = []);
 
+		/**
+		 * Records the steps for a node and its descendants.
+		 * @param node The node to visit.
+		 * @param parent The parent of the node, or `undefined` for the root.
+		 */
 		const visit = (
 			node: DockerNode,
 			parent: DockerNode | undefined,
@@ -185,6 +229,7 @@ export class DockerFileSourceCode extends TextSourceCodeBase<{
 
 	/**
 	 * Returns all comments that look like inline ESLint configuration.
+	 * @returns The matching comments, in source order.
 	 */
 	getInlineConfigNodes(): CommentNode[] {
 		if (!this.#inlineConfigComments) {
@@ -199,6 +244,7 @@ export class DockerFileSourceCode extends TextSourceCodeBase<{
 	/**
 	 * Returns directives for disabling/enabling rules found in comments,
 	 * such as `# eslint-disable-next-line docker/no-maintainer`.
+	 * @returns The directives, and any problems found while reading them.
 	 */
 	getDisableDirectives(): {
 		directives: Directive[];
@@ -235,6 +281,8 @@ export class DockerFileSourceCode extends TextSourceCodeBase<{
 
 	/**
 	 * Applies `# eslint rule: severity` configuration comments.
+	 * @returns The rule configuration from each comment with its location,
+	 * and a problem for each comment that could not be parsed.
 	 */
 	applyInlineConfig(): {
 		configs: { config: { rules: RulesConfig }; loc: SourceLocation }[];
