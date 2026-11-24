@@ -29,6 +29,8 @@ const UNRESOLVED_SOURCE = /[$*?[\]"']/u;
  * Removes trailing `/` and `/.` segments from a path, so `dir/` becomes
  * `dir` and `archive.tar.gz/.` becomes `archive.tar.gz`. A loop keeps
  * this linear in the length of the path.
+ * @param path The path to trim.
+ * @returns The path without trailing separators.
  */
 function removeTrailingSeparators(path: string): string {
 	let end = path.length;
@@ -70,10 +72,20 @@ const rule: DockerRuleDefinition<{
 		},
 	},
 
+	/**
+	 * Creates the rule's visitor.
+	 * @param context The rule context.
+	 * @returns A visitor that checks ADD instructions.
+	 */
 	create(context) {
 		const { sourceCode } = context;
 
 		return {
+			/**
+			 * Reports an ADD instruction whose sources are all local files
+			 * or directories that are not archives.
+			 * @param node The ADD instruction to check.
+			 */
 			AddInstruction(node) {
 				if (node.sources.length === 0) {
 					return;
