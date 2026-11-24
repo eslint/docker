@@ -8,6 +8,11 @@ import { parseDocker } from "../parser/parse.js";
 import type { ShellCommand } from "./utils.js";
 import type { RunInstructionNode, ShellFormNode } from "../types.js";
 
+/**
+ * Parses a RUN instruction with a shell-form command.
+ * @param command The command to put after `RUN`.
+ * @returns The Dockerfile text and the parsed shell form.
+ */
 function parseRun(command: string): {
 	text: string;
 	form: ShellFormNode;
@@ -19,6 +24,11 @@ function parseRun(command: string): {
 	return { text, form: run.command as ShellFormNode };
 }
 
+/**
+ * Parses a RUN command and splits it into simple commands.
+ * @param command The command to put after `RUN`.
+ * @returns The simple commands.
+ */
 function split(command: string): ShellCommand[] {
 	const { text, form } = parseRun(command);
 

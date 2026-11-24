@@ -75,6 +75,11 @@ export interface ShellCommand {
  * unquoted, unescaped `;`. Scanning stops at an unquoted shell comment.
  * Quoting and escaping are read from the source text because argument
  * values already have some escapes resolved.
+ * @param shellForm The shell-form command to split.
+ * @param sourceText The source text of the Dockerfile containing the
+ * command.
+ * @returns The simple commands, in source order. Commands with no words
+ * are omitted.
  */
 export function splitShellCommands(
 	shellForm: ShellFormNode,
@@ -84,6 +89,12 @@ export function splitShellCommands(
 	let current: ArgumentNode[] = [];
 	let currentRaw: string[] = [];
 
+	/**
+	 * Ends the current command, adding it to the list if it has any
+	 * tokens, and starts a new one.
+	 * @param endsWithSeparator Whether the last token ends with a `;` that
+	 * separates commands and must be trimmed from its word.
+	 */
 	const push = (endsWithSeparator = false): void => {
 		// A standalone `(` opens a subshell; the command starts after it.
 		while (
@@ -103,6 +114,9 @@ export function splitShellCommands(
 			/**
 			 * Removes a group opener from the first word and a separator
 			 * from the last word.
+			 * @param word The word to trim.
+			 * @param index The index of the word in the command.
+			 * @returns The trimmed word.
 			 */
 			const trim = (word: string, index: number): string => {
 				let result = word;
@@ -137,6 +151,9 @@ export function splitShellCommands(
 	 * the token ends with a semicolon that is neither quoted nor escaped,
 	 * which separates commands, and whether a comment starts right after
 	 * such a semicolon (`ok;# note`).
+	 * @param value The raw source text of the token.
+	 * @returns Whether the token ends with a command separator and whether
+	 * a comment starts right after it.
 	 */
 	const consumeQuotes = (
 		value: string,
@@ -222,6 +239,9 @@ export function splitShellCommands(
 
 /**
  * Returns the offsets spanning a non-empty list of tokens.
+ * @param tokens The tokens to span.
+ * @returns The start offset of the first token and the end offset of the
+ * last token.
  */
 export function spanOfTokens(tokens: Readonly<NonEmptyTokens>): {
 	start: number;
