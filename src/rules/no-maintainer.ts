@@ -33,6 +33,12 @@ const rule: DockerRuleDefinition<{ MessageIds: "useLabel" }> = {
 		},
 	},
 
+	/**
+	 * Creates the rule's visitor.
+	 * @param context The rule context.
+	 * @returns A visitor that collects the MAINTAINER instructions of each
+	 * stage and reports them when the stage ends.
+	 */
 	create(context) {
 		const { sourceCode } = context;
 
@@ -75,6 +81,9 @@ const rule: DockerRuleDefinition<{ MessageIds: "useLabel" }> = {
 
 		/**
 		 * Returns the source text of a MAINTAINER instruction's value.
+		 * @param node The MAINTAINER instruction.
+		 * @returns The text from the first to the last argument, or an
+		 * empty string if there are no arguments.
 		 */
 		function maintainerText(node: MaintainerInstructionNode): string {
 			const first = node.arguments[0];
@@ -86,21 +95,36 @@ const rule: DockerRuleDefinition<{ MessageIds: "useLabel" }> = {
 		}
 
 		return {
+			/**
+			 * Ends the previous stage and starts a new one.
+			 */
 			FromInstruction() {
 				reportStage();
 				stageHasMaintainerLabel = false;
 			},
 
+			/**
+			 * Ends the last stage.
+			 */
 			"Dockerfile:exit"() {
 				reportStage();
 			},
 
+			/**
+			 * Records whether the current stage sets a `maintainer` label.
+			 * @param node The LABEL instruction to check.
+			 */
 			LabelInstruction(node) {
 				if (node.pairs.some(pair => pair.key.value === "maintainer")) {
 					stageHasMaintainerLabel = true;
 				}
 			},
 
+			/**
+			 * Records a MAINTAINER instruction and whether it can be
+			 * converted to a LABEL safely.
+			 * @param node The MAINTAINER instruction.
+			 */
 			MaintainerInstruction(node) {
 				const argsText = maintainerText(node);
 
