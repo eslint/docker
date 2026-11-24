@@ -48,10 +48,20 @@ const rule: DockerRuleDefinition<{
 		},
 	},
 
+	/**
+	 * Creates the rule's visitor.
+	 * @param context The rule context.
+	 * @returns A visitor that checks RUN instructions.
+	 */
 	create(context) {
 		const { sourceCode } = context;
 
 		return {
+			/**
+			 * Reports each `cd` command in a shell-form RUN instruction,
+			 * suggesting WORKDIR when the RUN does nothing else.
+			 * @param node The RUN instruction to check.
+			 */
 			RunInstruction(node) {
 				if (node.command?.type !== "ShellForm") {
 					return;
