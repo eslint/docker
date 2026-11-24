@@ -6,6 +6,13 @@ import { describe, expect, it } from "vitest";
 import { Linter } from "eslint";
 import docker from "../src/index.js";
 
+/**
+ * Lints Dockerfile code and applies all available fixes.
+ * @param code The Dockerfile code to fix.
+ * @param rules The rule configuration to use.
+ * @returns The fix report, including the fixed code and the remaining
+ * messages.
+ */
 function fix(code: string, rules: Record<string, unknown>): Linter.FixReport {
 	const linter = new Linter();
 

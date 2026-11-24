@@ -6,6 +6,12 @@ import { describe, expect, it } from "vitest";
 import { Linter } from "eslint";
 import docker from "../src/index.js";
 
+/**
+ * Lints Dockerfile code with the plugin loaded.
+ * @param code The Dockerfile code to lint.
+ * @param rules The rule configuration to use.
+ * @returns The lint messages.
+ */
 function lint(
 	code: string,
 	rules: Record<string, unknown>,

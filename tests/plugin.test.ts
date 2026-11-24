@@ -13,6 +13,12 @@ const baseConfig = {
 	language: "docker/dockerfile",
 } as const;
 
+/**
+ * Lints Dockerfile code with the plugin loaded.
+ * @param code The Dockerfile code to lint.
+ * @param rules The rule configuration to use. Defaults to no rules.
+ * @returns The lint messages.
+ */
 function lint(
 	code: string,
 	rules: Record<string, unknown> = {},
