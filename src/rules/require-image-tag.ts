@@ -33,10 +33,20 @@ const rule: DockerRuleDefinition<{
 		},
 	},
 
+	/**
+	 * Creates the rule's visitor.
+	 * @param context The rule context.
+	 * @returns A visitor that checks FROM instructions.
+	 */
 	create(context) {
 		const stageNames = new Set<string>();
 
 		return {
+			/**
+			 * Reports a base image that has no tag or digest, or that uses
+			 * the `latest` tag. References to earlier stages are skipped.
+			 * @param node The FROM instruction to check.
+			 */
 			FromInstruction(node) {
 				const { image, alias } = node;
 				// A stage reference is a bare name: with a tag or digest
