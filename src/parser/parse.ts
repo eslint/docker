@@ -52,6 +52,9 @@ export interface DockerParseResult {
 /**
  * Creates a converter from LSP line/character positions to character
  * offsets in the source text.
+ * @param text The source text that positions refer to.
+ * @returns A function that converts an LSP position to a character offset,
+ * clamped to the length of the text.
  */
 function createPositionConverter(
 	text: string,
@@ -76,6 +79,8 @@ function createPositionConverter(
 
 /**
  * Escapes a string for literal use inside a regular expression.
+ * @param value The string to escape.
+ * @returns The string with every regular expression metacharacter escaped.
  */
 function escapeRegExp(value: string): string {
 	return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
@@ -85,6 +90,8 @@ function escapeRegExp(value: string): string {
  * Parses Dockerfile source code into an ESTree-style syntax tree. The
  * underlying parser is error-tolerant, so parsing never throws: malformed
  * input still produces a tree.
+ * @param text The Dockerfile source text.
+ * @returns The parse result containing the `Dockerfile` root node.
  */
 export function parseDocker(text: string): DockerParseResult {
 	const dockerfile = DockerfileParser.parse(text);
@@ -102,19 +109,38 @@ export function parseDocker(text: string): DockerParseResult {
 	/**
 	 * Returns the source text between two offsets with line continuations
 	 * and the comment lines inside them removed.
+	 * @param start The offset at which the text starts (inclusive).
+	 * @param end The offset at which the text ends (exclusive).
+	 * @returns The text between the offsets as Docker reads it.
 	 */
 	const logicalText = (start: number, end: number): string =>
 		text.slice(start, end).replace(continuationPattern, "");
 
+	/**
+	 * Converts an LSP range to character offsets in the source text.
+	 * @param range The range to convert.
+	 * @returns The start and end offsets of the range.
+	 */
 	const spanOf = (range: Range): { start: number; end: number } => ({
 		start: offsetAt(range.start),
 		end: offsetAt(range.end),
 	});
 
+	/**
+	 * Creates an `Argument` node.
+	 * @param value The value of the argument.
+	 * @param range The range of the argument in the source text.
+	 * @returns The new `Argument` node.
+	 */
 	function argumentNode(value: string, range: Range): ArgumentNode {
 		return { type: "Argument", value, ...spanOf(range) };
 	}
 
+	/**
+	 * Converts the flags (such as `--platform=...`) of an instruction.
+	 * @param instruction The upstream instruction whose flags to convert.
+	 * @returns A `Flag` node for each flag, in source order.
+	 */
 	function convertFlags(instruction: ModifiableInstruction): FlagNode[] {
 		return instruction.getFlags().map(flag => ({
 			type: "Flag" as const,
@@ -124,6 +150,12 @@ export function parseDocker(text: string): DockerParseResult {
 		}));
 	}
 
+	/**
+	 * Converts the whitespace-separated arguments of an instruction.
+	 * @param instruction The upstream instruction whose arguments to
+	 * convert.
+	 * @returns An `Argument` node for each argument, in source order.
+	 */
 	function convertArguments(instruction: Instruction): ArgumentNode[] {
 		return instruction
 			.getArguments()
@@ -137,6 +169,9 @@ export function parseDocker(text: string): DockerParseResult {
 	 * upstream parser collapses whitespace in its argument values, so the
 	 * value is sliced out of the source text instead: it is the raw text
 	 * between the quotes. Offsets include the quotes.
+	 * @param instruction The upstream instruction whose JSON strings to
+	 * convert.
+	 * @returns An `Argument` node for each string in the array.
 	 */
 	function convertJsonStrings(instruction: JSONInstruction): ArgumentNode[] {
 		return instruction.getJSONStrings().map(jsonString => {
@@ -153,6 +188,8 @@ export function parseDocker(text: string): DockerParseResult {
 	/**
 	 * Converts the JSON array of an exec-form instruction. The node spans
 	 * from the opening to the closing bracket.
+	 * @param instruction The upstream instruction to convert.
+	 * @returns The `ExecForm` node.
 	 */
 	function convertExecForm(instruction: JSONInstruction): ExecFormNode {
 		const elements = convertJsonStrings(instruction);
@@ -176,6 +213,8 @@ export function parseDocker(text: string): DockerParseResult {
 	/**
 	 * Converts the arguments of a shell-form instruction. The node spans
 	 * from the first to the last token.
+	 * @param args The instruction's arguments. Must not be empty.
+	 * @returns The `ShellForm` node.
 	 */
 	function convertShellForm(args: ArgumentNode[]): ShellFormNode {
 		return {
@@ -191,6 +230,8 @@ export function parseDocker(text: string): DockerParseResult {
 	 * treats the arguments as JSON only when they form a complete JSON array
 	 * of strings; anything else, such as `RUN [ -f /app ] && make`, is
 	 * shell form even though it starts with a bracket.
+	 * @param instruction The upstream instruction to check.
+	 * @returns `true` if the arguments are a complete JSON array of strings.
 	 */
 	function isJsonForm(instruction: JSONInstruction): boolean {
 		const openingBracket = instruction.getOpeningBracket();
@@ -221,6 +262,13 @@ export function parseDocker(text: string): DockerParseResult {
 		}
 	}
 
+	/**
+	 * Converts the command of an instruction that accepts either the exec
+	 * form or the shell form (such as RUN or CMD).
+	 * @param instruction The upstream instruction to convert.
+	 * @returns The `ExecForm` or `ShellForm` node, or `null` if the
+	 * instruction has no arguments.
+	 */
 	function convertCommandBody(
 		instruction: JSONInstruction,
 	): CommandBodyNode | null {
@@ -239,6 +287,9 @@ export function parseDocker(text: string): DockerParseResult {
 	 * contain whitespace). The value is the source text from the first to
 	 * the last argument with line continuations removed; offsets span the
 	 * same text.
+	 * @param args The instruction's arguments.
+	 * @returns The combined `Argument` node, or `null` if there are no
+	 * arguments.
 	 */
 	function joinArguments(args: ArgumentNode[]): ArgumentNode | null {
 		const first = args[0];
@@ -261,6 +312,9 @@ export function parseDocker(text: string): DockerParseResult {
 	 * the instruction uses a heredoc (`COPY <<EOF /app/file`), the upstream
 	 * argument list also contains the heredoc body and terminator, which
 	 * are not sources or destinations.
+	 * @param args The instruction's arguments.
+	 * @param instructionStart The offset at which the instruction starts.
+	 * @returns The arguments that appear on the header lines.
 	 */
 	function headerArguments(
 		args: ArgumentNode[],
@@ -300,6 +354,11 @@ export function parseDocker(text: string): DockerParseResult {
 		return args.filter(argument => argument.start < headerEnd);
 	}
 
+	/**
+	 * Converts the key-value pairs of an instruction such as ENV or LABEL.
+	 * @param instruction The upstream instruction whose pairs to convert.
+	 * @returns A `KeyValuePair` node for each pair, in source order.
+	 */
 	function convertPairs(
 		instruction: PropertyInstruction,
 	): KeyValuePairNode[] {
@@ -319,6 +378,11 @@ export function parseDocker(text: string): DockerParseResult {
 		});
 	}
 
+	/**
+	 * Converts an upstream instruction to the matching instruction node.
+	 * @param instruction The upstream instruction to convert.
+	 * @returns The instruction node.
+	 */
 	function convertInstruction(instruction: Instruction): InstructionNode {
 		const keyword = instruction.getKeyword();
 		const span = spanOf(instruction.getRange());
@@ -330,14 +394,19 @@ export function parseDocker(text: string): DockerParseResult {
 			const registry = instruction.getRegistry();
 			const imageName = instruction.getImageName() ?? "";
 
-			// dockerfile-ast returns the source spelling of these parts,
-			// including line continuations, and drops the registry from
-			// the image name.
+			/**
+			 * Removes line continuations from part of an image reference.
+			 * dockerfile-ast returns the source spelling of these parts,
+			 * including line continuations.
+			 * @param value The text to join, or `null`.
+			 * @returns The joined text, or `null` if `value` is `null`.
+			 */
 			const joinLines = <T extends string | null>(value: T): T =>
 				(value === null
 					? value
 					: value.replace(continuationPattern, "")) as T;
 
+			// dockerfile-ast drops the registry from the image name.
 			let name = joinLines(
 				registry === null ? imageName : `${registry}/${imageName}`,
 			);
