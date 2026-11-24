@@ -15,6 +15,11 @@ interface Example {
 
 const CONFIG_COMMENT = /^# eslint docker\//u;
 
+/**
+ * Reads the documentation for a rule.
+ * @param ruleId The rule's name, without the plugin prefix.
+ * @returns The contents of the rule's Markdown file with LF line endings.
+ */
 function readDoc(ruleId: string): string {
 	return readFileSync(
 		new URL(`../docs/rules/${ruleId}.md`, import.meta.url),
@@ -25,6 +30,8 @@ function readDoc(ruleId: string): string {
 /**
  * Finds each "Examples of **incorrect|correct** code" heading and the
  * dockerfile code block that follows it.
+ * @param doc The contents of a rule's documentation.
+ * @returns The examples, in document order.
  */
 function getExamples(doc: string): Example[] {
 	const pattern =
@@ -36,6 +43,12 @@ function getExamples(doc: string): Example[] {
 	}));
 }
 
+/**
+ * Lints Dockerfile code with the plugin loaded and no rules enabled, so
+ * that only rules turned on by configuration comments in the code run.
+ * @param code The Dockerfile code to lint.
+ * @returns The lint messages.
+ */
 function lint(code: string): Linter.LintMessage[] {
 	return new Linter().verify(
 		code,

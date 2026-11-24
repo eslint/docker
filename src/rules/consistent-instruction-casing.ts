@@ -35,9 +35,19 @@ const rule: DockerRuleDefinition<{ MessageIds: "expectedUppercase" }> = {
 		},
 	},
 
+	/**
+	 * Creates the rule's visitor.
+	 * @param context The rule context.
+	 * @returns A visitor that checks the keyword of every instruction.
+	 */
 	create(context) {
 		const { sourceCode } = context;
 
+		/**
+		 * Reports an instruction whose keyword is not written in
+		 * uppercase.
+		 * @param node The instruction to check.
+		 */
 		function check(node: InstructionNode): void {
 			// The keyword in the source is the first whitespace-delimited
 			// word. Its length can differ from the normalized keyword's
