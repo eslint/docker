@@ -46,6 +46,9 @@ const VALUE_SHORT_OPTIONS = new Set(["o", "c", "t", "a", "S"]);
  * Returns whether an option word consumes the following word as its
  * value. Short-option clusters such as `-qo` are read one letter at a
  * time, the way APT parses them.
+ * @param word The option word, starting with `-`.
+ * @param nextWord The word that follows the option, if any.
+ * @returns `true` if the option takes `nextWord` as its value.
  */
 function takesNextWord(word: string, nextWord: string | undefined): boolean {
 	if (VALUE_LONG_OPTIONS.has(word)) {
@@ -116,6 +119,8 @@ const ALL_VERSIONS_SUBCOMMANDS = new Set([
 /**
  * Returns the APT subcommand: the first word that is neither an option
  * nor the value of an option.
+ * @param words The decoded words that follow the APT command name.
+ * @returns The subcommand, or `undefined` if there is none.
  */
 function findSubcommand(words: string[]): string | undefined {
 	for (let i = 0; i < words.length; i++) {
@@ -141,6 +146,8 @@ const DOUBLE_QUOTE_ESCAPABLE = new Set(["$", "`", '"', "\\"]);
  * an open quote are merged with the following tokens, and quotes and
  * escapes are removed, so `'upgrade'` becomes `upgrade` and `-o 'a b'`
  * gives one value word.
+ * @param values The source spelling of each token.
+ * @returns The decoded shell words.
  */
 function toShellWords(values: string[]): string[] {
 	const words: string[] = [];
@@ -211,10 +218,20 @@ const rule: DockerRuleDefinition<{ MessageIds: "noUpgrade" }> = {
 		},
 	},
 
+	/**
+	 * Creates the rule's visitor.
+	 * @param context The rule context.
+	 * @returns A visitor that checks RUN instructions.
+	 */
 	create(context) {
 		const { sourceCode } = context;
 
 		return {
+			/**
+			 * Reports each APT upgrade command in a shell-form RUN
+			 * instruction.
+			 * @param node The RUN instruction to check.
+			 */
 			RunInstruction(node) {
 				if (node.command?.type !== "ShellForm") {
 					return;
