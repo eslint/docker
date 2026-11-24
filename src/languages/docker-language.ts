@@ -14,15 +14,10 @@ import { parseDocker } from "../parser/parse.js";
 import { DockerFileSourceCode } from "./docker-source-code.js";
 import { visitorKeys } from "../visitor-keys.js";
 import type {
-	CommentNode,
 	DockerFileLanguageOptions,
 	DockerNode,
 	DockerfileNode,
 } from "../types.js";
-
-export type DockerOkParseResult = OkParseResult<DockerfileNode> & {
-	comments: CommentNode[];
-};
 
 /**
  * ESLint Language implementation for Dockerfiles.
@@ -55,9 +50,9 @@ export class DockerFileLanguage implements Language<{
 		try {
 			// The Dockerfile parser is error-tolerant and never throws for
 			// malformed input, so parsing always succeeds.
-			const { ast, comments } = parseDocker(text);
+			const { ast } = parseDocker(text);
 
-			return { ok: true, ast, comments };
+			return { ok: true, ast };
 		} catch (error) {
 			return {
 				ok: false,
@@ -77,7 +72,7 @@ export class DockerFileLanguage implements Language<{
 
 	createSourceCode(
 		file: File,
-		parseResult: DockerOkParseResult,
+		parseResult: OkParseResult<DockerfileNode>,
 	): DockerFileSourceCode {
 		return new DockerFileSourceCode({
 			text: file.body as string,

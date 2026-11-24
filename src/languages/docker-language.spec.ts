@@ -5,7 +5,8 @@
 import { describe, expect, it } from "vitest";
 import { DockerFileLanguage } from "./docker-language.js";
 import { DockerFileSourceCode } from "./docker-source-code.js";
-import type { DockerOkParseResult } from "./docker-language.js";
+import type { OkParseResult } from "@eslint/core";
+import type { DockerfileNode } from "../types.js";
 
 const language = new DockerFileLanguage();
 
@@ -41,11 +42,11 @@ describe("DockerFileLanguage", () => {
 
 			expect(result.ok).toBe(true);
 
-			const okResult = result as DockerOkParseResult;
+			const okResult = result as OkParseResult<DockerfileNode>;
 
 			expect(okResult.ast.type).toBe("Dockerfile");
 			expect(okResult.ast.body).toHaveLength(1);
-			expect(okResult.comments).toHaveLength(1);
+			expect(okResult.ast.comments).toHaveLength(1);
 		});
 
 		it("should parse malformed input without fatal errors", () => {
@@ -84,7 +85,9 @@ describe("DockerFileLanguage", () => {
 				physicalPath: "Dockerfile",
 				bom: false,
 			};
-			const result = language.parse(file) as DockerOkParseResult;
+			const result = language.parse(
+				file,
+			) as OkParseResult<DockerfileNode>;
 			const sourceCode = language.createSourceCode(file, result);
 
 			expect(sourceCode).toBeInstanceOf(DockerFileSourceCode);
