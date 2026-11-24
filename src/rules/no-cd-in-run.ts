@@ -8,7 +8,7 @@
 // Imports
 //------------------------------------------------------------------------------
 
-import { splitShellCommands, spanOfTokens } from "./utils.js";
+import { splitShellCommands, spanOfTokens } from "../rule-utils.js";
 import type { DockerNode, DockerRuleDefinition } from "../types.js";
 
 //------------------------------------------------------------------------------
