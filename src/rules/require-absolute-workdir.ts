@@ -22,9 +22,13 @@ const VARIABLE_START = /^[A-Za-z_{]/u;
 /**
  * Removes quotes and Dockerfile escapes anywhere in a WORKDIR operand, the
  * way Docker combines `"/opt/my app"/src` into `/opt/my app/src` and
- * `\/app` into `/app`. Returns the resulting path and whether it starts
- * with a variable reference that Docker expands: an unescaped `$` outside
- * single quotes, directly followed by a variable name or `{`.
+ * `\/app` into `/app`.
+ * @param raw The WORKDIR operand as written.
+ * @param escapeCharacter The Dockerfile's escape character, or an empty
+ * string to leave escapes unprocessed.
+ * @returns The resulting path, and whether it starts with a variable
+ * reference that Docker expands: an unescaped `$` outside single quotes,
+ * directly followed by a variable name or `{`.
  */
 function unquote(
 	raw: string,
@@ -91,6 +95,12 @@ const rule: DockerRuleDefinition<{ MessageIds: "expectedAbsolute" }> = {
 		},
 	},
 
+	/**
+	 * Creates the rule's visitor.
+	 * @param context The rule context.
+	 * @returns A visitor that tracks each stage's platform and checks
+	 * WORKDIR instructions.
+	 */
 	create(context) {
 		const { sourceCode } = context;
 		const escapeCharacter =
@@ -103,6 +113,10 @@ const rule: DockerRuleDefinition<{ MessageIds: "expectedAbsolute" }> = {
 		let linuxStage = false;
 
 		return {
+			/**
+			 * Records whether the new stage explicitly targets Linux.
+			 * @param node The FROM instruction that starts the stage.
+			 */
 			FromInstruction(node) {
 				const platform = node.flags.find(
 					flag => flag.name === "platform",
@@ -111,6 +125,10 @@ const rule: DockerRuleDefinition<{ MessageIds: "expectedAbsolute" }> = {
 				linuxStage = /^linux(?:\/|$)/iu.test(platform?.value ?? "");
 			},
 
+			/**
+			 * Reports a WORKDIR instruction whose path is not absolute.
+			 * @param node The WORKDIR instruction to check.
+			 */
 			WorkdirInstruction(node) {
 				if (!node.path) {
 					return;
