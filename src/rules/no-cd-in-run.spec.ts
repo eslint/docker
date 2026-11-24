@@ -1,0 +1,108 @@
+/**
+ * @fileoverview Tests for the no-cd-in-run rule.
+ */
+
+import { RuleTester } from "eslint";
+import { DockerFileLanguage } from "../languages/docker-language.js";
+import rule from "./no-cd-in-run.js";
+
+const ruleTester = new RuleTester({
+	plugins: {
+		docker: {
+			languages: { dockerfile: new DockerFileLanguage() },
+		},
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any -- plugin shape is validated by ESLint at runtime.
+	} as any,
+	language: "docker/dockerfile",
+});
+
+ruleTester.run("no-cd-in-run", rule as never, {
+	valid: [
+		"WORKDIR /app\nRUN make",
+		"RUN echo cd",
+		"RUN mycd /app",
+		// Exec form is not shell code.
+		'RUN ["cd", "/app"]',
+		"RUN",
+	],
+	invalid: [
+		{
+			// A lone `cd` can be replaced with WORKDIR, but WORKDIR also
+			// affects later instructions, so it is only a suggestion.
+			code: "RUN cd /app",
+			output: null,
+			errors: [
+				{
+					messageId: "useWorkdir",
+					line: 1,
+					column: 5,
+					endColumn: 12,
+					suggestions: [
+						{
+							messageId: "replaceWithWorkdir",
+							data: { directory: "/app" },
+							output: "WORKDIR /app",
+						},
+					],
+				},
+			],
+		},
+		{
+			// Compound commands are reported without a fix.
+			code: "RUN cd /app && make",
+			output: null,
+			errors: [
+				{
+					messageId: "useWorkdir",
+					column: 5,
+					endColumn: 12,
+				},
+			],
+		},
+		{
+			// A bracket that does not start a JSON array is shell form.
+			code: "RUN [ -d /app ] && cd /app",
+			output: null,
+			errors: [{ messageId: "useWorkdir", column: 20 }],
+		},
+		{
+			code: "RUN make && cd /out",
+			output: null,
+			errors: [{ messageId: "useWorkdir", column: 13 }],
+		},
+		{
+			code: "RUN cd /app; make",
+			output: null,
+			errors: [{ messageId: "useWorkdir" }],
+		},
+		{
+			// Multi-line RUN instructions are not autofixed.
+			code: "RUN cd \\\n    /app",
+			output: null,
+			errors: [{ messageId: "useWorkdir" }],
+		},
+		// Only plain absolute literal paths are autofixed.
+		...[
+			"RUN cd -",
+			"RUN cd -P",
+			"RUN cd app",
+			"RUN cd ./app",
+			"RUN cd ..",
+			"RUN cd /app&&make",
+			"RUN cd /app|tee",
+			"RUN (cd /app)",
+			"RUN cd ~",
+			"RUN cd ~/app",
+			"RUN cd $HOME",
+			"RUN cd ${APP_DIR}",
+			"RUN cd $(pwd)/app",
+			"RUN cd `pwd`",
+			'RUN cd "/my app"',
+			"RUN cd /app/*",
+		].map(code => ({
+			code,
+			output: null,
+			errors: [{ messageId: "useWorkdir" }],
+		})),
+	],
+});

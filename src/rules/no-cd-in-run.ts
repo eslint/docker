@@ -1,0 +1,134 @@
+/**
+ * @fileoverview Rule to disallow `cd` in RUN instructions in favor of
+ * WORKDIR. Each RUN starts a fresh shell, so directory changes do not
+ * persist and obscure the build context.
+ */
+
+//------------------------------------------------------------------------------
+// Imports
+//------------------------------------------------------------------------------
+
+import { splitShellCommands, spanOfTokens } from "../rule-utils.js";
+import type { DockerNode, DockerRuleDefinition } from "../types.js";
+
+//------------------------------------------------------------------------------
+// Helpers
+//------------------------------------------------------------------------------
+
+/**
+ * An absolute path without shell operators, quoting, globs, or expansions,
+ * which means the same thing to `cd` and to WORKDIR. Relative paths are
+ * excluded because `cd` may resolve them through `CDPATH`, and `cd -`
+ * and options such as `-P` have no WORKDIR equivalent.
+ */
+const ABSOLUTE_LITERAL_PATH = /^\/[\w./@+-]*$/u;
+
+//------------------------------------------------------------------------------
+// Rule Definition
+//------------------------------------------------------------------------------
+
+const rule: DockerRuleDefinition<{
+	MessageIds: "useWorkdir" | "replaceWithWorkdir";
+}> = {
+	meta: {
+		type: "suggestion",
+		docs: {
+			description:
+				"Disallow `cd` in `RUN` instructions in favor of `WORKDIR`",
+			recommended: true,
+			url: "https://github.com/eslint/docker/blob/main/docs/rules/no-cd-in-run.md",
+		},
+		hasSuggestions: true,
+		schema: [],
+		messages: {
+			useWorkdir:
+				"Use WORKDIR to switch directories instead of `cd` in RUN.",
+			replaceWithWorkdir:
+				"Replace this RUN instruction with `WORKDIR {{directory}}`.",
+		},
+	},
+
+	/**
+	 * Creates the rule's visitor.
+	 * @param context The rule context.
+	 * @returns A visitor that checks RUN instructions.
+	 */
+	create(context) {
+		const { sourceCode } = context;
+
+		return {
+			/**
+			 * Reports each `cd` command in a shell-form RUN instruction,
+			 * suggesting WORKDIR when the RUN does nothing else.
+			 * @param node The RUN instruction to check.
+			 */
+			RunInstruction(node) {
+				if (node.command?.type !== "ShellForm") {
+					return;
+				}
+
+				const commands = splitShellCommands(
+					node.command,
+					sourceCode.text,
+				);
+
+				for (const command of commands) {
+					if (command.words[0] !== "cd") {
+						continue;
+					}
+
+					// `RUN cd /dir` on its own does nothing except hide a
+					// missing WORKDIR, so WORKDIR can be suggested. It is
+					// not an automatic fix because WORKDIR also changes the
+					// directory of later instructions and creates the
+					// directory if it is missing. Only
+					// a plain `cd` with an absolute literal path
+					// qualifies: attached operators, subshells, quoting,
+					// and expansions (such as `~` or `$HOME`) would change
+					// meaning in WORKDIR.
+					const [cdToken, directoryToken] = command.tokens;
+					const directory =
+						directoryToken &&
+						sourceCode.text.slice(
+							directoryToken.start,
+							directoryToken.end,
+						);
+					const canFix =
+						commands.length === 1 &&
+						command.tokens.length === 2 &&
+						node.flags.length === 0 &&
+						cdToken !== undefined &&
+						sourceCode.text.slice(cdToken.start, cdToken.end) ===
+							"cd" &&
+						directory !== undefined &&
+						ABSOLUTE_LITERAL_PATH.test(directory) &&
+						!/[\n\r]/u.test(
+							sourceCode.text.slice(node.start, node.end),
+						);
+
+					context.report({
+						loc: sourceCode.getLoc(
+							spanOfTokens(command.tokens) as DockerNode,
+						),
+						messageId: "useWorkdir",
+						suggest: canFix
+							? [
+									{
+										messageId: "replaceWithWorkdir",
+										data: { directory },
+										fix: fixer =>
+											fixer.replaceTextRange(
+												[node.start, node.end],
+												`WORKDIR ${directory}`,
+											),
+									},
+								]
+							: undefined,
+					});
+				}
+			},
+		};
+	},
+};
+
+export default rule;
