@@ -29,7 +29,10 @@ describe("plugin", () => {
 	it("should expose all rules", () => {
 		const ruleIds = Object.keys(plugin.rules);
 
-		expect(ruleIds.sort()).toEqual(["consistent-instruction-casing"]);
+		expect(ruleIds.sort()).toEqual([
+			"consistent-instruction-casing",
+			"no-apt-get-upgrade",
+		]);
 	});
 
 	it("should give every rule meta docs and messages", () => {
